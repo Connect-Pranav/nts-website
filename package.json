@@ -1,0 +1,35 @@
+{
+  "name": "nts-website",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "test": "node --no-warnings --test worker/test/*.test.mjs",
+    "worker:dev": "npm run build && wrangler dev",
+    "worker:check": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "db:migrate:local": "wrangler d1 migrations apply nts --local",
+    "db:migrate": "wrangler d1 migrations apply nts --remote"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/montserrat": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "5.6",
+    "vite": "^5.4.21",
+    "wrangler": "^4.157.0"
+  }
+}

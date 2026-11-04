@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "brand": "nikhils_tech_studio",
+  "source": "Connect-Pranav/Ganesha-AI-Studio@bc8b2c3:agents/registry.json",
+  "note": "Bindings of existing agents to NTS. No new agents are defined here. Ganesha files are never modified.",
+  "agents": [
+    {
+      "id": "ganesha_orchestrator",
+      "name": "GANESHA",
+      "ntsRole": "orchestrator",
+      "label": "Master Orchestrator",
+      "scope": "Runs the NTS content workflow: delegates drafting, adaptation and analysis; retries failed steps; records errors.",
+      "permissions": ["read:content", "write:jobs", "write:agent_logs"],
+      "approvalRequired": ["publish_content"],
+      "selected": true,
+      "phase": 1
+    },
+    {
+      "id": "ops_maya_docs",
+      "name": "MAYA-OPS",
+      "ntsRole": "brand_content",
+      "label": "Brand & Content Agent",
+      "scope": "Writes blogs, tutorials, educational articles and social captions in the NTS voice; repurposes one article into platform posts.",
+      "permissions": ["read:content", "write:drafts"],
+      "approvalRequired": [],
+      "selected": true,
+      "phase": 1
+    },
+    {
+      "id": "ops_lakshmi_growth",
+      "name": "LAKSHMI-OPS",
+      "ntsRole": "social_media",
+      "label": "Social Media Agent",
+      "scope": "Adapts approved drafts per platform, schedules jobs and publishes only approved jobs through official APIs.",
+      "permissions": ["read:drafts", "write:jobs", "publish:approved_only"],
+      "approvalRequired": ["publish_content"],
+      "selected": true,
+      "phase": 1
+    },
+    {
+      "id": "ops_soma_analytics",
+      "name": "SOMA",
+      "ntsRole": "growth_analytics",
+      "label": "Growth & Analytics Agent",
+      "scope": "Reports audience growth, engagement and content performance from synced official API data; writes recommendations.",
+      "permissions": ["read:analytics", "write:recommendations"],
+      "approvalRequired": [],
+      "selected": true,
+      "phase": 1
+    },
+    {
+      "id": "dal_abba",
+      "name": "Dal_Abba",
+      "ntsRole": "site_assistant",
+      "label": "NIKHIL AI Ninja",
+      "scope": "Public website assistant: answers visitor questions, explains programmes, navigates to pages.",
+      "source": "Connect-Pranav/Nikhils_Tech_Studio@5240531:ninja-*.js",
+      "permissions": ["read:public_content"],
+      "approvalRequired": [],
+      "selected": false,
+      "phase": 2
+    }
+  ]
+}

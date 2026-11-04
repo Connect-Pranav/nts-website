@@ -1,0 +1,69 @@
+/* NIKHILs TECH STUDIO design tokens: Emerald Teal (approved). One palette, dark default + light mode of the same palette. */
+:root,
+[data-theme='dark'] {
+  --bg: #031a18;
+  --bg-2: #062824;
+  --surface: #092f2a;
+
+  --emerald: #00b894;
+  --teal: #00d6b5;
+  --mint: #78f5d9;
+
+  --text: #f5faf8;
+  --text-2: #b5cbc4;
+  --muted: #829b93;
+
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-strong: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(120, 245, 217, 0.24);
+  --glass-highlight: rgba(120, 245, 217, 0.12);
+
+  --on-accent: #032420;
+  --btn-a: #00b894;
+  --btn-b: #78f5d9;
+  --shadow: 0 24px 60px rgba(0, 12, 10, 0.55);
+  --ambient-1: rgba(0, 214, 181, 0.22);
+  --ambient-2: rgba(0, 184, 148, 0.14);
+  --ribbon: rgba(120, 245, 217, 0.5);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #f3faf8;
+  --bg-2: #e7f4f0;
+  --surface: #ffffff;
+
+  --emerald: #00876c;
+  --teal: #00a88e;
+  --mint: #3fd6b5;
+
+  --text: #052b26;
+  --text-2: #2e5049;
+  --muted: #557069;
+
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 135, 108, 0.22);
+  --glass-highlight: rgba(0, 168, 142, 0.1);
+
+  --on-accent: #ffffff;
+  --btn-a: #006b55;
+  --btn-b: #00927a;
+  --shadow: 0 20px 50px rgba(3, 60, 50, 0.14);
+  --ambient-1: rgba(0, 168, 142, 0.16);
+  --ambient-2: rgba(63, 214, 181, 0.14);
+  --ribbon: rgba(0, 168, 142, 0.35);
+  color-scheme: light;
+}
+
+:root {
+  --font-display: 'Montserrat Variable', 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Geist Variable', 'Geist', system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --t: 300ms;
+  --radius-card: 22px;
+  --radius-pill: 999px;
+  --max: 1320px;
+  --z-nav: 50;
+  --z-overlay: 100;
+}

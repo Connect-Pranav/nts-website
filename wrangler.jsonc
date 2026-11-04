@@ -1,0 +1,10 @@
+{
+  // Phase 2 (homepage): static site on Cloudflare Workers, free tier. SPA fallback for client routes.
+  // The /api backend (worker/*.mjs, D1 "nts") is wired in the next phase.
+  "name": "nts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
