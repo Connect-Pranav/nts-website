@@ -3,6 +3,7 @@
 // Cached for 6 hours at the edge, so the daily API quota is barely touched.
 import { json } from './util.mjs';
 import * as dev from './dev.mjs';
+import * as work from './work.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -108,6 +109,10 @@ async function cached(url, ctx, compute) {
 }
 
 export default {
+  // Cloudflare cron (free): the NTS agent team runs a cycle on autopilot
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(work.scheduled(env));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));

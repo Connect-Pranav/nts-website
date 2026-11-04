@@ -4,15 +4,18 @@
 // Features (from VANI): mic input, spoken replies, conversation mode, wake word, stop, full screen,
 // opening brief, quick replies, local rule brain when the AI is unavailable.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowsIn, ArrowsOut, Brain, Checks, Copy, DotsThreeVertical, FileText, Microphone, Paperclip, PaperPlaneRight, SpeakerHigh, SpeakerSlash, Smiley, Stop, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsIn, ArrowsOut, Brain, Checks, Copy, DotsThreeVertical, DownloadSimple, FilePdf, FileText, Microphone, Paperclip, PaperPlaneRight, SpeakerHigh, SpeakerSlash, Smiley, Stop, X } from '@phosphor-icons/react';
 import { navigate } from '../lib/router';
 import { SITE } from '../config';
 import { EMOJI, stripEmoji } from './emoji';
+import { downloadImage, downloadMarkdown, downloadPdf } from '../lib/download';
 import './Assistant.css';
 
-type Role = 'user' | 'assistant' | 'sys' | 'agent' | 'link';
+type Role = 'user' | 'assistant' | 'sys' | 'agent' | 'link' | 'image';
 type FileTag = { name: string; thumb?: string };
-type Msg = { id: number; role: Role; text: string; ts: number; read?: boolean; title?: string; href?: string; file?: FileTag };
+type Msg = { id: number; role: Role; text: string; ts: number; read?: boolean; title?: string; href?: string; file?: FileTag; imgId?: string };
+// generated images live in memory only (too large for sessionStorage)
+const IMAGES = new Map<string, { mime: string; data: string; engine: string }>();
 type Attach = { name: string; mime: string; data?: string; text?: string; thumb?: string };
 const TEXT_EXT = /\.(txt|md|csv|tsv|json|sql|html?|css|js|ts|tsx|py|xml|ya?ml|log)$/i;
 const BIN_MIME = /^(image\/(png|jpeg|webp|gif)|application\/pdf)$/;
@@ -382,6 +385,45 @@ export function Assistant({ kind, token = '' }: Props) {
     [token, sys],
   );
 
+  // Work board actions (same API as the Dev console); the console listens for nts:work to refresh
+  const workCall = useCallback(
+    async (path: string, payload: object, done: (d: { last?: { topic: string; count: number } }) => string) => {
+      try {
+        const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json', ...authHeaders() }, body: JSON.stringify(payload) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        window.dispatchEvent(new Event('nts:work'));
+        sys(done(d));
+      } catch (e) {
+        flashErr();
+        sys(`Nahi hua: ${(e as Error).message}`);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [token, sys],
+  );
+
+  const makeImage = useCallback(
+    async (raw: string) => {
+      const m = raw.match(/aspect\s*(1:1|9:16|16:9|4:5|3:4)/i);
+      const prompt = raw.replace(/\(?\s*aspect\s*(1:1|9:16|16:9|4:5|3:4)\s*\)?\.?/i, '').trim();
+      sys('Image ban rahi hai… 🎨');
+      try {
+        const r = await fetch('/api/dev/image', { method: 'POST', headers: { 'content-type': 'application/json', ...authHeaders() }, body: JSON.stringify({ prompt, aspect: m?.[1] }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+        const id = `img${Date.now()}`;
+        IMAGES.set(id, { mime: d.mime, data: d.data, engine: d.engine });
+        push({ role: 'image', text: prompt.slice(0, 140), imgId: id });
+      } catch (e) {
+        flashErr();
+        sys(`Image nahi bani: ${(e as Error).message}`);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [token, push, sys],
+  );
+
   const doActions = useCallback(
     (acts: Action[]) => {
       for (const a of acts.slice(0, 5)) {
@@ -394,9 +436,16 @@ export function Assistant({ kind, token = '' }: Props) {
           const useLast = /^(last|this|ye|yeh|isko|it)$/i.test(a.value.trim()) && last;
           saveNote(useLast ? last!.text : a.value, useLast ? last!.title : undefined);
         } else if (a.type === 'open_tab' && a.value) window.dispatchEvent(new CustomEvent('nts:devtab', { detail: a.value }));
+        else if (a.type === 'run_cycle') {
+          sys('Team cycle chal raha hai… ⏳');
+          window.dispatchEvent(new CustomEvent('nts:devtab', { detail: 'work' }));
+          workCall('/api/dev/work/cycle', { focus: a.value || '' }, (d) => `✅ Cycle done: "${d.last?.topic ?? ''}" · ${d.last?.count ?? 0} items Work board par.`);
+        } else if ((a.type === 'approve' || a.type === 'reject') && a.id) workCall(`/api/dev/work/${a.id}/${a.type}`, { reason: a.value || '' }, () => (a.type === 'approve' ? '✅ Approve ho gaya, Brain ne seekh liya.' : '❌ Reject ho gaya, team agli baar dhyan rakhegi.'));
+        else if (a.type === 'make_image' && a.value) makeImage(a.value);
+        else if (a.type === 'remember' && a.value) workCall('/api/dev/brain/rules', { text: a.value }, () => '🧠 Rule Brain mein add ho gaya.');
       }
     },
-    [owner, push, runAgent, saveNote],
+    [owner, push, runAgent, saveNote, workCall, makeImage],
   );
 
   const ruleBrain = useCallback(
@@ -773,6 +822,26 @@ export function Assistant({ kind, token = '' }: Props) {
                     </a>
                   </div>
                 );
+              if (m.role === 'image') {
+                const img = m.imgId ? IMAGES.get(m.imgId) : undefined;
+                return (
+                  <div key={m.id} className={`wa-row in ${first ? 'first' : ''}`}>
+                    <div className="wa-bub wa-bub--agent wa-bub--img">
+                      {img ? <img src={`data:${img.mime};base64,${img.data}`} alt={m.text} /> : <p className="wa-agent__t">Image expired (page reload). Dobara banwa lijiye.</p>}
+                      <p className="wa-img__cap">{m.text}</p>
+                      {img && (
+                        <div className="wa-agent__acts">
+                          <button type="button" onClick={() => downloadImage(m.text, img.mime, img.data)}>
+                            <DownloadSimple size={14} /> Download
+                          </button>
+                          <span className="wa-img__eng">{img.engine}</span>
+                        </div>
+                      )}
+                      <span className="wa-meta">{time(m.ts)}</span>
+                    </div>
+                  </div>
+                );
+              }
               if (m.role === 'agent')
                 return (
                   <div key={m.id} className={`wa-row in ${first ? 'first' : ''}`}>
@@ -785,6 +854,12 @@ export function Assistant({ kind, token = '' }: Props) {
                         </button>
                         <button type="button" onClick={() => saveNote(m.text, m.title)}>
                           <Brain size={14} /> Save to Brain
+                        </button>
+                        <button type="button" onClick={() => downloadPdf(m.title || 'NTS result', m.text)}>
+                          <FilePdf size={14} /> PDF
+                        </button>
+                        <button type="button" onClick={() => downloadMarkdown(m.title || 'NTS result', m.text)}>
+                          <DownloadSimple size={14} /> .md
                         </button>
                       </div>
                       <span className="wa-meta">{time(m.ts)}</span>

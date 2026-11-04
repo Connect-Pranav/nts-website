@@ -6,14 +6,15 @@
 //                            POST /api/marg/tts        Sarvam Bulbul voice (paid per character after sign-up
 //                            credits), daily cap, sentence cache; the browser falls back to the free device voice.
 import { HttpError, json, clientIp, safeEqual } from './util.mjs';
-import { generate, parseJson } from './providers.mjs';
+import { generate, parseJson, engineStatus } from './providers.mjs';
+import { getWork } from './work.mjs';
 import * as store from './store.mjs';
 import { catalogue } from './dev.mjs';
 
 const PUBLIC_PAGES = ['/', '/about', '/lab', '/academy', '/insights', '/media', '/contact'];
 const PAGES = [...PUBLIC_PAGES, '/dev'];
 const LINKS = ['youtube', 'instagram', 'linkedin'];
-const TABS = ['agents', 'brain', 'settings'];
+const TABS = ['work', 'agents', 'brain', 'settings'];
 
 export const PUBLIC_KNOWLEDGE = `NIKHILs TECH STUDIO (always spelled exactly so): India's Practice Gym for the AI Era. Learn. Practice. Simulate. Grow.
 Mission: turn free content into practice, practice into proof, and proof into careers. Vision: every Indian learner job-ready for the AI era.
@@ -37,7 +38,8 @@ Reply in the language the owner used: Hindi or Hinglish gets natural Hinglish (R
 Do not greet again once the conversation has started. Never claim you did something unless you add the action for it. Use run_agent only for longer deliverables (a full post, a calendar, an analysis report); answer everything else yourself.`;
 
 const PUBLIC_ACTIONS = `Actions you may add (only when the person clearly asks or it clearly helps): navigate {value: one of ${PUBLIC_PAGES.join(', ')}}, open_link {value: youtube|instagram|linkedin}.`;
-const OWNER_ACTIONS = `Actions: navigate {value: /dev or any page}, open_link {value: youtube|instagram|linkedin}, run_agent {id: agent id from STATE, value: the exact task for that agent} (only when the owner asks for content, a plan, a calendar or an analysis), save_note {value: text to save in the Brain} (only when the owner asks to remember or save), open_tab {value: agents|brain|settings}.
+const OWNER_ACTIONS = `Actions: navigate {value: /dev or any page}, open_link {value: youtube|instagram|linkedin}, run_agent {id: agent id from STATE, value: the exact task for that agent} (only when the owner asks for content, a plan, a calendar or an analysis), save_note {value: text to save in the Brain} (only when the owner asks to remember or save), open_tab {value: work|agents|brain|settings}, run_cycle {value: optional focus} (the whole team plans one topic and drafts LinkedIn + Instagram/YouTube + growth pieces onto the Work board; use when the owner asks for content ideas, "aaj ka content", a cycle or a plan), approve {id: work item id from STATE} / reject {id, value: reason} (only when the owner clearly says so), remember {value: a standing rule for all agents} (when the owner says "always/never/yaad rakho"), make_image {value: a detailed English image prompt (subject, composition, mood; 9:16 for Reels, 16:9 for YouTube thumbnails, 1:1 otherwise, written at the end like "aspect 9:16")} (when the owner asks for an image, poster, thumbnail or visual).
+You cannot create or send files yourself. Agent results and Work board items have Download buttons (Markdown and PDF), and images have a Download button; point the owner to those instead of inventing links, emails or pop-up blocker advice.
 For run_agent pick: LinkedIn posts/articles -> ops_maya_docs; Instagram/YouTube/cross-platform plans, captions, titles, calendars -> ops_lakshmi_growth; numbers, growth, what worked -> ops_soma_analytics. When you run an agent, just say you have started it; the result appears on screen.`;
 
 const FORMAT = `Respond with JSON only: {"reply":"what you say, as shown on screen (emojis allowed)","say":"the same reply for the voice engine with no emojis: Hindi words in Devanagari script, English words kept in English letters, numbers as words","actions":[{"type":"...","id":"...","value":"..."}]}`;
@@ -98,6 +100,10 @@ export function cleanActions(list, owner) {
     else if (owner && type === 'run_agent' && ids.has(String(a?.id)) && value.trim().length >= 3) out.push({ type, id: String(a.id), value: value.trim() });
     else if (owner && type === 'save_note' && value.trim().length >= 3) out.push({ type, value: value.trim() });
     else if (owner && type === 'open_tab' && TABS.includes(value)) out.push({ type, value });
+    else if (owner && type === 'run_cycle') out.push({ type, value: value.trim().slice(0, 300) });
+    else if (owner && (type === 'approve' || type === 'reject') && /^w_[a-z0-9]{10,40}$/.test(String(a?.id))) out.push({ type, id: String(a.id), value: value.trim().slice(0, 200) });
+    else if (owner && type === 'remember' && value.trim().length >= 3) out.push({ type, value: value.trim().slice(0, 300) });
+    else if (owner && type === 'make_image' && value.trim().length >= 3) out.push({ type, value: value.trim().slice(0, 1500) });
   }
   return out;
 }
@@ -139,9 +145,13 @@ export async function chat(rawEnv, request, assistant = 'disha') {
   if (owner) {
     const brain = await store.getBrain(rawEnv);
     knowledge = await store.brainContext(rawEnv);
+    const board = await getWork(rawEnv);
+    const waiting = board.items.filter((i) => i.status === 'waiting').slice(0, 6);
+    state += `\nWORK BOARD: ${board.items.length} items, ${waiting.length ? `${board.items.filter((i) => i.status === 'waiting').length} waiting for approval: ${waiting.map((i) => `${i.id} = ${i.agentName} / ${i.channel}: ${i.title}`).join('; ')}` : 'nothing waiting'}. Autopilot ${board.autopilot ? 'on (every 6 hours)' : 'off'}.${board.last ? ` Last cycle topic: ${board.last.topic}.` : ''}`;
+    state += `\nRULES: ${brain.rules.length}. LESSONS LEARNED: ${brain.feedback.length}.`;
     state += `\nAGENTS: ${catalogue()
       .map((a) => `${a.id} = ${a.name}`)
-      .join('; ')}.\nBRAIN NOTES: ${brain.notes.length}. ENGINES: ${['gemini', 'groq'].filter((e) => env[`${e.toUpperCase()}_API_KEY`]).join(', ') || 'none'}.`;
+      .join('; ')}.\nBRAIN NOTES: ${brain.notes.length}. ENGINES: ${Object.entries(engineStatus(env)).filter(([, e]) => e.configured).map(([k]) => k).join(', ') || 'none'}.`;
   }
   const system = `${owner ? MARG_PERSONA : DISHA_PERSONA}\n\nKNOWLEDGE:\n${knowledge}\n\n${owner ? OWNER_ACTIONS : PUBLIC_ACTIONS}\n\n${FORMAT}`;
   const prompt = `STATE:\n${state}\n\nCONVERSATION:\n${msgs.map((m) => `${m.role}: ${m.text}`).join('\n')}${attached}\n\nReply to the person's last message.`;

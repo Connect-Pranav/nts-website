@@ -5,3 +5,4 @@ dist/
 .env
 *.log
 tsconfig.tsbuildinfo
+wrangler.local.jsonc

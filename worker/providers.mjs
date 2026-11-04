@@ -1,15 +1,22 @@
-// Free-first AI engines: Gemini (Google AI Studio free key) then Groq (free key).
-// Server-side only. Keys never leave the Worker. Returns text + token usage.
+// Free-first AI engines (same chain as AGENTVERSE): Gemini (free key) -> Groq (free key) -> Cloud brain
+// (no key: Pollinations, then Cloudflare Workers AI free allowance). Retired model IDs are rediscovered
+// from the provider's live model list. Server-side only; keys never leave the Worker.
 import { HttpError } from './util.mjs';
 
-export const ENGINES = ['gemini', 'groq'];
+export const ENGINES = ['gemini', 'groq', 'cloud'];
+
+// per-isolate memory of the last model that worked after a rediscovery
+const LIVE = { gemini: null, groq: null };
 
 export function engineStatus(env) {
   return {
-    gemini: { configured: Boolean(env.GEMINI_API_KEY), model: env.GEMINI_MODEL || 'gemini-2.5-flash' },
-    groq: { configured: Boolean(env.GROQ_API_KEY), model: env.GROQ_MODEL || 'openai/gpt-oss-120b' },
+    gemini: { configured: Boolean(env.GEMINI_API_KEY), model: LIVE.gemini || env.GEMINI_MODEL || 'gemini-flash-latest' },
+    groq: { configured: Boolean(env.GROQ_API_KEY), model: LIVE.groq || env.GROQ_MODEL || 'openai/gpt-oss-120b' },
+    cloud: { configured: Boolean(env.AI) || env.CLOUD_BRAIN === 'on', model: 'free cloud brain' },
   };
 }
+const gone = (status, msg) => status === 404 || /does not exist|decommissioned|not found|no longer supported|deprecated/i.test(msg || '');
+const ver = (id) => parseFloat((String(id).match(/(\d+(?:\.\d+)?)/) || [0, 0])[1]);
 
 const price = (v) => {
   if (!v) return null;
@@ -30,7 +37,8 @@ export async function generate(env, { system, prompt, maxTokens = 2048, json = f
   for (const engine of order) {
     const started = Date.now();
     try {
-      const r = engine === 'gemini' ? await gemini(env, { system, prompt, maxTokens, json, files }, fetchImpl) : await groq(env, { system, prompt, maxTokens, json }, fetchImpl);
+      const args = { system, prompt, maxTokens, json, files };
+      const r = engine === 'gemini' ? await gemini(env, args, fetchImpl) : engine === 'groq' ? await groq(env, args, fetchImpl) : await cloud(env, args, fetchImpl);
       const p = price(engine === 'gemini' ? env.GEMINI_PRICE_PER_MTOK : env.GROQ_PRICE_PER_MTOK);
       const cost = p ? ((r.inputTokens ?? 0) * p.i + (r.outputTokens ?? 0) * p.o) / 1e6 : null;
       return { ...r, engine, latencyMs: Date.now() - started, costUsd: cost };
@@ -43,7 +51,15 @@ export async function generate(env, { system, prompt, maxTokens = 2048, json = f
   throw new HttpError(502, errors.map((e) => e.message).join(' | '));
 }
 
-const GEMINI_FALLBACK_MODEL = 'gemini-flash-latest';
+async function discoverGemini(env, fetchImpl) {
+  const r = await fetchImpl('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': String(env.GEMINI_API_KEY).trim() } });
+  const j = await r.json().catch(() => ({}));
+  const ms = (j.models || [])
+    .filter((x) => (x.supportedGenerationMethods || []).includes('generateContent') && /gemini/.test(x.name) && /flash/.test(x.name) && !/image|tts|audio|live|embed|vision|thinking-exp|learnlm/.test(x.name))
+    .map((x) => x.name.replace('models/', ''))
+    .sort((a, b) => /preview|exp/.test(a) - /preview|exp/.test(b) || /lite/.test(a) - /lite/.test(b) || ver(b.replace('gemini-', '')) - ver(a.replace('gemini-', '')));
+  return ms[0] || 'gemini-flash-latest';
+}
 
 async function gemini(env, { system, prompt, maxTokens, json, files = [] }, fetchImpl) {
   let model = engineStatus(env).gemini.model;
@@ -60,11 +76,15 @@ async function gemini(env, { system, prompt, maxTokens, json, files = [] }, fetc
     });
   let res = await call(model);
   let body = await res.json().catch(() => ({}));
-  // a retired model ID: retry once on Google's always-current flash alias
-  if (res.status === 404 && model !== GEMINI_FALLBACK_MODEL) {
-    model = GEMINI_FALLBACK_MODEL;
-    res = await call(model);
-    body = await res.json().catch(() => ({}));
+  // a retired model ID: find the current flash model from Google's live list and retry once
+  if (gone(res.status, body?.error?.message)) {
+    const next = await discoverGemini(env, fetchImpl).catch(() => 'gemini-flash-latest');
+    if (next !== model) {
+      model = next;
+      res = await call(model);
+      body = await res.json().catch(() => ({}));
+      if (res.ok) LIVE.gemini = model;
+    }
   }
   if (!res.ok) {
     const reason = body?.error?.details?.find?.((d) => d?.reason)?.reason;
@@ -76,8 +96,29 @@ async function gemini(env, { system, prompt, maxTokens, json, files = [] }, fetc
   return { text, model, inputTokens: body.usageMetadata?.promptTokenCount ?? null, outputTokens: body.usageMetadata?.candidatesTokenCount ?? null };
 }
 
-async function groq(env, { system, prompt, maxTokens, json }, fetchImpl) {
-  const model = engineStatus(env).groq.model;
+async function discoverGroq(env, fetchImpl) {
+  const r = await fetchImpl('https://api.groq.com/openai/v1/models', { headers: { authorization: `Bearer ${env.GROQ_API_KEY}` } });
+  const j = await r.json().catch(() => ({}));
+  const ids = (j.data || []).filter((x) => x.active !== false && !/whisper|tts|guard|playai|distil|vision|embed|compound|orpheus|prompt/i.test(x.id)).map((x) => x.id);
+  const pref = [/gpt-oss-120b/, /qwen3/, /llama-4/, /kimi/, /gpt-oss/, /llama/];
+  return pref.map((p) => ids.find((i) => p.test(i))).find(Boolean) || ids[0] || null;
+}
+
+async function groq(env, args, fetchImpl) {
+  const first = engineStatus(env).groq.model;
+  try {
+    return await groqCall(env, args, first, fetchImpl);
+  } catch (e) {
+    if (!e.gone) throw e;
+    const next = await discoverGroq(env, fetchImpl).catch(() => null);
+    if (!next || next === first) throw e;
+    const r = await groqCall(env, args, next, fetchImpl);
+    LIVE.groq = next;
+    return r;
+  }
+}
+
+async function groqCall(env, { system, prompt, maxTokens, json }, model, fetchImpl) {
   const res = await fetchImpl('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
@@ -96,12 +137,67 @@ async function groq(env, { system, prompt, maxTokens, json }, fetchImpl) {
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const gone = /does not exist|decommissioned|not found/i.test(body?.error?.message || '');
-    throw new HttpError(502, `Groq: ${body?.error?.message || `HTTP ${res.status}`}${gone ? ' Settings mein GROQ_MODEL khaali chhodiye (default openai/gpt-oss-120b).' : ''}`);
+    const err = new HttpError(502, `Groq: ${body?.error?.message || `HTTP ${res.status}`}`);
+    err.gone = gone(res.status, body?.error?.message);
+    throw err;
   }
   const text = body.choices?.[0]?.message?.content ?? '';
   if (!text) throw new HttpError(502, 'Groq returned no text.');
   return { text, model, inputTokens: body.usage?.prompt_tokens ?? null, outputTokens: body.usage?.completion_tokens ?? null };
+}
+
+// ---------------- Cloud brain (no key) ----------------
+const CF_MODELS = ['@cf/meta/llama-3.3-70b-instruct-fp8-fast', '@cf/qwen/qwen3-30b-a3b-fp8', '@cf/meta/llama-3.1-8b-instruct-fp8'];
+const aiText = (r) => {
+  if (typeof r === 'string') return r;
+  if (typeof r?.response === 'string') return r.response;
+  if (r?.response && typeof r.response === 'object') return JSON.stringify(r.response);
+  const c = r?.choices?.[0]?.message?.content ?? r?.choices?.[0]?.text;
+  return typeof c === 'string' ? c : '';
+};
+
+async function cloud(env, { system, prompt, maxTokens, json }, fetchImpl) {
+  // daily cap keeps it inside free allowances (no surprise spend)
+  const cap = Number(env.CLOUD_BRAIN_DAILY) > 0 ? Number(env.CLOUD_BRAIN_DAILY) : 300;
+  const key = `brain/cloud/${new Date().toISOString().slice(0, 10)}`;
+  const used = env.NTS_KV ? Number(await env.NTS_KV.get(key)) || 0 : 0;
+  if (used >= cap) throw new HttpError(429, `Cloud brain: aaj ki free limit (${cap}) poori ho gayi.`);
+  if (env.NTS_KV) await env.NTS_KV.put(key, String(used + 1), { expirationTtl: 3 * 86400 });
+  const sys = `${system}${json ? '\nReturn ONLY valid JSON.' : ''}`;
+  const errs = [];
+  if (env.CLOUD_POLLINATIONS !== 'off') {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 45_000);
+    try {
+      const r = await fetchImpl('https://text.pollinations.ai/openai', {
+        method: 'POST',
+        signal: ctl.signal,
+        headers: { 'content-type': 'application/json', 'user-agent': 'nts-website/1.0' },
+        body: JSON.stringify({ model: 'openai', messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], temperature: 0.7 }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const text = aiText(await r.json()).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      if (text) return { text, model: 'pollinations', inputTokens: null, outputTokens: null };
+      errs.push('pollinations: empty');
+    } catch (e) {
+      errs.push(`pollinations: ${String(e?.message ?? e).slice(0, 60)}`);
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  if (env.AI) {
+    for (const model of CF_MODELS) {
+      try {
+        const r = await env.AI.run(model, { messages: [{ role: 'system', content: sys }, { role: 'user', content: prompt }], max_tokens: Math.min(maxTokens, 2048), temperature: 0.7 });
+        const text = aiText(r).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        if (text) return { text, model: model.replace('@cf/', ''), inputTokens: null, outputTokens: null };
+        errs.push(`${model.split('/').pop()}: empty`);
+      } catch (e) {
+        errs.push(`${model.split('/').pop()}: ${String(e?.message ?? e).slice(0, 60)}`);
+      }
+    }
+  }
+  throw new HttpError(502, `Cloud brain: ${errs.join(' | ') || 'not available'}`);
 }
 
 /** Parse JSON from a model reply, tolerating ```json fences. */

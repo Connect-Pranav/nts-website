@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Trash, WarningCircle } from '@phosphor-icons/react';
+import { CheckCircle, Copy, DownloadSimple, FilePdf, ImageSquare, Trash, WarningCircle } from '@phosphor-icons/react';
+import { downloadImage, downloadMarkdown, downloadPdf } from '../lib/download';
 
 export type Engines = Record<string, { configured: boolean; model: string }>;
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 
 type Setting = { name: string; label: string; secret: boolean; testable: boolean; source: 'cloudflare' | 'saved' | null; preview: string | null; broken: boolean; updatedAt: string | null };
 type Note = { id: string; title: string; text: string; source: string; createdAt: string };
-type Brain = { knowledge: string; notes: Note[]; updatedAt: string | null; isDefault: boolean };
+type Brain = { knowledge: string; notes: Note[]; rules: string[]; feedback: { text: string; at: string }[]; updatedAt: string | null; isDefault: boolean };
 
 const fmt = (d: string | null) => (d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
@@ -137,6 +138,7 @@ export function BrainPanel({ api }: { api: Api }) {
   const [brain, setBrain] = useState<Brain | null>(null);
   const [draft, setDraft] = useState('');
   const [note, setNote] = useState({ title: '', text: '' });
+  const [rule, setRule] = useState('');
   const [status, setStatus] = useState('');
   const [err, setErr] = useState('');
 
@@ -190,6 +192,50 @@ export function BrainPanel({ api }: { api: Api }) {
           <span className="dbrain__count dx-mono dx-dim">{draft.length.toLocaleString('en-IN')} / 12,000</span>
         </div>
       </section>
+      <div className="dbrain__side">
+      <section className="dbrain__col dx-card" aria-labelledby="rules-title">
+        <header className="dbrain__head">
+          <h2 id="rules-title">Rules</h2>
+          <span className="dx-mono dx-dim">every agent follows these</span>
+        </header>
+        <ul className="dbrain__rules">
+          {brain.rules.map((r, i) => (
+            <li key={r}>
+              <span>{r}</span>
+              <button type="button" className="dx-iconbtn" aria-label={`Delete rule ${r}`} onClick={() => run(() => api(`/api/dev/brain/rules/${i}`, { method: 'DELETE' }), 'rule removed')}>
+                <Trash size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+        <form
+          className="dx-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            run(() => api('/api/dev/brain/rules', { method: 'POST', body: JSON.stringify({ text: rule }) }), 'rule added').then(() => setRule(''));
+          }}
+        >
+          <label className="sr-only" htmlFor="rule">
+            New rule
+          </label>
+          <input id="rule" className="dx-input" style={{ flex: 1 }} value={rule} maxLength={300} onChange={(e) => setRule(e.target.value)} placeholder="e.g. Always end LinkedIn posts with a question" />
+          <button type="submit" className="dx-btn dx-btn--primary" disabled={rule.trim().length < 3}>
+            Add
+          </button>
+        </form>
+        <header className="dbrain__head" style={{ marginTop: 6 }}>
+          <h2>Learned</h2>
+          <span className="dx-mono dx-dim">from your approve / reject</span>
+        </header>
+        <ul className="dbrain__rules dbrain__learned">
+          {brain.feedback.slice(0, 8).map((f) => (
+            <li key={f.at + f.text}>
+              <span className={/^Rejected/.test(f.text) ? 'no' : 'ok'}>{f.text}</span>
+            </li>
+          ))}
+          {!brain.feedback.length && <li className="dx-dim">Nothing yet. Approve or reject work and the team learns.</li>}
+        </ul>
+      </section>
       <section className="dbrain__col dx-card" aria-labelledby="notes-title">
         <header className="dbrain__head">
           <h2 id="notes-title">Notes</h2>
@@ -232,6 +278,202 @@ export function BrainPanel({ api }: { api: Api }) {
           {!brain.notes.length && <li className="dbrain__empty">No notes yet.</li>}
         </ul>
       </section>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- Work board (agent team cycle) ----------------
+type Item = { id: string; agent: string; agentName: string; channel: string; title: string; body: string; status: 'waiting' | 'ready' | 'rejected'; topic: string; createdAt: string; brain: string; by: string; reason?: string };
+type Board = { items: Item[]; topics: string[]; cycles: number; updated: string | null; last: { topic: string; why: string; summary: string; count: number; brain: string; by: string; at: string } | null; autopilot: boolean };
+const FLOW = ['Brain', 'Plan', 'Agents draft', 'You approve', 'Team learns'];
+
+export function WorkPanel({ api, ready }: { api: Api; ready: boolean }) {
+  const [board, setBoard] = useState<Board | null>(null);
+  const [filter, setFilter] = useState<Item['status']>('waiting');
+  const [focus, setFocus] = useState('');
+  const [busy, setBusy] = useState('');
+  const [err, setErr] = useState('');
+  const [rej, setRej] = useState<{ id: string; text: string } | null>(null);
+  const [copied, setCopied] = useState('');
+  const [imgs, setImgs] = useState<Record<string, { mime: string; data: string; engine: string } | 'busy' | { error: string }>>({});
+
+  async function makeImage(it: Item) {
+    setImgs((m) => ({ ...m, [it.id]: 'busy' }));
+    const aspect = it.channel === 'YouTube' ? '16:9' : it.channel === 'Instagram' ? '9:16' : it.channel === 'LinkedIn' ? '4:5' : '1:1';
+    try {
+      const d = await api<{ mime: string; data: string; engine: string }>('/api/dev/image', { method: 'POST', body: JSON.stringify({ prompt: `Visual for this ${it.channel} post titled "${it.title}". Content: ${it.body.slice(0, 700)}`, aspect }) });
+      setImgs((m) => ({ ...m, [it.id]: d }));
+    } catch (e) {
+      setImgs((m) => ({ ...m, [it.id]: { error: (e as Error).message } }));
+    }
+  }
+
+  useEffect(() => {
+    const load = () => api<Board>('/api/dev/work').then(setBoard, (e: Error) => setErr(e.message));
+    load();
+    window.addEventListener('nts:work', load);
+    return () => window.removeEventListener('nts:work', load);
+  }, [api]);
+
+  async function act(key: string, fn: () => Promise<Board>) {
+    setBusy(key);
+    setErr('');
+    try {
+      setBoard(await fn());
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy('');
+    }
+  }
+  const post = (path: string, b: object) => api<Board>(path, { method: 'POST', body: JSON.stringify(b) });
+
+  if (!board) return err ? <p className="dx-err" role="alert">{err}</p> : <div className="dx-skel" aria-label="Loading work" />;
+  const count = (s: Item['status']) => board.items.filter((i) => i.status === s).length;
+  const shown = board.items.filter((i) => i.status === filter);
+
+  return (
+    <div className="dwork">
+      <section className="dx-card dwork__run">
+        <ol className="dwork__flow" aria-label="How the team works">
+          {FLOW.map((f, i) => (
+            <li key={f} className={busy === 'cycle' && i < 3 ? 'on' : ''}>
+              <span>{i + 1}</span> {f}
+            </li>
+          ))}
+        </ol>
+        <form
+          className="dwork__form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            act('cycle', () => post('/api/dev/work/cycle', { focus })).then(() => {
+              setFocus('');
+              setFilter('waiting');
+            });
+          }}
+        >
+          <label className="sr-only" htmlFor="focus">
+            Focus for this cycle
+          </label>
+          <input id="focus" className="dx-input" value={focus} maxLength={300} onChange={(e) => setFocus(e.target.value)} placeholder="Focus (optional), e.g. SQL JOIN mistakes for freshers" />
+          <button type="submit" className="dx-btn dx-btn--primary" disabled={!ready || busy === 'cycle'} title={ready ? '' : 'No AI engine yet: add a key in Settings'}>
+            {busy === 'cycle' ? 'Team working…' : 'Run cycle'}
+          </button>
+        </form>
+        <div className="dwork__meta">
+          <label className="dx-switch" title="Runs one cycle every 6 hours">
+            <input type="checkbox" checked={board.autopilot} onChange={(e) => act('auto', () => post('/api/dev/work/autopilot', { on: e.target.checked }))} />
+            <span aria-hidden="true" />
+            <span className="sr-only">Autopilot</span>
+          </label>
+          <span>Autopilot {board.autopilot ? 'on · every 6 h' : 'off'}</span>
+          <span className="dx-dim">· {board.cycles} cycles</span>
+          {board.last && (
+            <span className="dx-dim dwork__last" title={board.last.why}>
+              · last: “{board.last.topic}” via {board.last.brain}
+            </span>
+          )}
+        </div>
+        {err && (
+          <p className="dx-err" role="alert">
+            {err}
+          </p>
+        )}
+      </section>
+
+      <div className="dwork__tabs" role="tablist" aria-label="Filter work">
+        {(['waiting', 'ready', 'rejected'] as const).map((s) => (
+          <button key={s} type="button" role="tab" aria-selected={filter === s} className={filter === s ? 'on' : ''} onClick={() => setFilter(s)}>
+            {s === 'waiting' ? 'Needs approval' : s === 'ready' ? 'Approved' : 'Rejected'} <small>{count(s)}</small>
+          </button>
+        ))}
+      </div>
+
+      <ul className="dwork__list">
+        {shown.map((it) => (
+          <li key={it.id} className="dx-card dwork__item">
+            <header>
+              <span className={`dwork__ch dwork__ch--${it.channel.toLowerCase()}`}>{it.channel}</span>
+              <span className="dx-mono dx-dim">{it.agentName}</span>
+              <span className="dx-mono dx-dim dwork__when">{fmt(it.createdAt)}</span>
+            </header>
+            <h3>{it.title}</h3>
+            <pre>{it.body}</pre>
+            {it.reason && <p className="dx-mono dx-dim">note: {it.reason}</p>}
+            {(() => {
+              const im = imgs[it.id];
+              if (!im) return null;
+              if (im === 'busy') return <p className="dx-mono dx-dim">image ban rahi hai…</p>;
+              if ('error' in im) return <p className="dx-err">{im.error}</p>;
+              return (
+                <figure className="dwork__img">
+                  <img src={`data:${im.mime};base64,${im.data}`} alt={`Visual for ${it.title}`} />
+                  <figcaption className="dx-row">
+                    <button type="button" className="dx-btn" onClick={() => downloadImage(it.title, im.mime, im.data)}>
+                      <DownloadSimple size={15} /> Image
+                    </button>
+                    <span className="dx-mono dx-dim">{im.engine}</span>
+                  </figcaption>
+                </figure>
+              );
+            })()}
+            <div className="dx-row">
+              {it.status === 'waiting' && rej?.id !== it.id && (
+                <>
+                  <button type="button" className="dx-btn dx-btn--primary" disabled={busy === it.id} onClick={() => act(it.id, () => post(`/api/dev/work/${it.id}/approve`, {}))}>
+                    <CheckCircle size={15} /> Approve
+                  </button>
+                  <button type="button" className="dx-btn" onClick={() => setRej({ id: it.id, text: '' })}>
+                    <WarningCircle size={15} /> Reject
+                  </button>
+                </>
+              )}
+              {rej?.id === it.id && (
+                <form
+                  className="dwork__rej"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    act(it.id, () => post(`/api/dev/work/${it.id}/reject`, { reason: rej.text })).then(() => setRej(null));
+                  }}
+                >
+                  <input className="dx-input" autoFocus value={rej.text} maxLength={200} onChange={(e) => setRej({ id: it.id, text: e.target.value })} placeholder="Why? The team learns from this (optional)" />
+                  <button type="submit" className="dx-btn dx-btn--primary">
+                    Reject
+                  </button>
+                  <button type="button" className="dx-btn" onClick={() => setRej(null)}>
+                    Cancel
+                  </button>
+                </form>
+              )}
+              <button
+                type="button"
+                className="dx-btn"
+                onClick={() => {
+                  navigator.clipboard?.writeText(it.body);
+                  setCopied(it.id);
+                  setTimeout(() => setCopied(''), 1500);
+                }}
+              >
+                <Copy size={15} /> {copied === it.id ? 'Copied' : 'Copy'}
+              </button>
+              <button type="button" className="dx-btn" onClick={() => downloadPdf(it.title, it.body)}>
+                <FilePdf size={15} /> PDF
+              </button>
+              <button type="button" className="dx-btn" onClick={() => downloadMarkdown(it.title, it.body)}>
+                <DownloadSimple size={15} /> .md
+              </button>
+              <button type="button" className="dx-btn" disabled={imgs[it.id] === 'busy'} onClick={() => makeImage(it)}>
+                <ImageSquare size={15} /> {imgs[it.id] && imgs[it.id] !== 'busy' && !('error' in (imgs[it.id] as object)) ? 'New image' : 'Make image'}
+              </button>
+              <button type="button" className="dx-iconbtn" aria-label={`Delete ${it.title}`} onClick={() => act(it.id, () => api(`/api/dev/work/${it.id}`, { method: 'DELETE' }))}>
+                <Trash size={17} />
+              </button>
+            </div>
+          </li>
+        ))}
+        {!shown.length && <li className="dwork__empty dx-dim">{filter === 'waiting' ? 'Nothing waiting. Run a cycle and the team will draft LinkedIn, Instagram/YouTube and growth pieces.' : 'Nothing here yet.'}</li>}
+      </ul>
     </div>
   );
 }

@@ -723,3 +723,232 @@ body.is-dev {
 .dset__row > .dx-btn {
   justify-self: start;
 }
+
+/* work board */
+.dwork {
+  display: grid;
+  gap: 14px;
+  max-width: 980px;
+}
+.dwork__run {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.dwork__flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--dx-dim);
+}
+.dwork__flow li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+}
+.dwork__flow li span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font: 600 10.5px/1 var(--dx-mono);
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--dx-gold);
+}
+.dwork__flow li.on {
+  color: var(--dx-text);
+  border-color: var(--dx-gold);
+  animation: dx-pulse 1.2s ease-in-out infinite;
+}
+@keyframes dx-pulse {
+  50% {
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+  }
+}
+.dwork__form {
+  display: flex;
+  gap: 8px;
+}
+.dwork__form .dx-input {
+  flex: 1;
+  height: 36px;
+}
+.dwork__form .dx-btn {
+  height: 36px;
+}
+.dwork__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+}
+.dwork__last {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.dwork__tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dwork__tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dwork__tabs button small {
+  font: 11px/1 var(--dx-mono);
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.14);
+}
+.dwork__tabs button.on {
+  color: var(--on-accent);
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--btn-a), var(--btn-b));
+}
+.dwork__tabs button.on small {
+  background: rgba(0, 0, 0, 0.12);
+}
+.dwork__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.dwork__item {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+}
+.dwork__item header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.dwork__when {
+  margin-left: auto;
+}
+.dwork__item h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+.dwork__item pre {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 13.5px/1.6 var(--font-body);
+  color: var(--text-2);
+}
+.dwork__ch {
+  font: 600 11px/1 var(--dx-mono);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--dx-gold);
+}
+.dwork__ch--linkedin {
+  background: rgba(10, 102, 194, 0.16);
+  color: #4c9be8;
+}
+.dwork__ch--instagram {
+  background: rgba(214, 41, 118, 0.14);
+  color: #e0588f;
+}
+.dwork__ch--youtube {
+  background: rgba(229, 45, 39, 0.14);
+  color: #ef5350;
+}
+.dwork__rej {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 100%;
+}
+.dwork__rej .dx-input {
+  flex: 1;
+  height: 34px;
+}
+.dwork__empty {
+  padding: 28px;
+  text-align: center;
+  border: 1px dashed var(--glass-border);
+  border-radius: 16px;
+  font-size: 13.5px;
+}
+
+/* brain: rules + learned */
+.dbrain__side {
+  display: grid;
+  gap: 12px;
+}
+.dbrain__rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.dbrain__rules li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: space-between;
+  padding: 6px 4px 6px 10px;
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.dbrain__learned li {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+.dbrain__learned .ok::before {
+  content: '✓ ';
+  color: var(--dx-ok);
+}
+.dbrain__learned .no::before {
+  content: '✕ ';
+  color: var(--dx-bad);
+}
+@media (max-width: 760px) {
+  .dwork__form {
+    flex-direction: column;
+  }
+}
+.dwork__img {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.dwork__img img {
+  max-width: min(360px, 100%);
+  max-height: 420px;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+}

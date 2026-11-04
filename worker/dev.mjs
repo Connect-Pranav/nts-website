@@ -5,6 +5,8 @@ import NTS from '../agents/registry.json' with { type: 'json' };
 import { HttpError, json, safeEqual, clientIp } from './util.mjs';
 import { generate, engineStatus } from './providers.mjs';
 import * as store from './store.mjs';
+import * as work from './work.mjs';
+import { generateImage } from './image.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
 const fails = new Map();
@@ -81,7 +83,7 @@ export async function handle(rawEnv, request, url) {
   }
   if (path === '/api/dev/settings/test' && method === 'POST') {
     const { engine } = await body(request);
-    if (!['gemini', 'groq'].includes(engine)) throw new HttpError(400, 'engine must be gemini or groq.');
+    if (!['gemini', 'groq', 'cloud'].includes(engine)) throw new HttpError(400, 'engine must be gemini, groq or cloud.');
     if (!engineStatus(env)[engine].configured) throw new HttpError(409, `${engine} key is not set.`);
     const r = await generate(env, { system: 'Reply with exactly: OK', prompt: 'Connection test', maxTokens: 20, only: engine });
     return json({ ok: true, engine: r.engine, model: r.model, latencyMs: r.latencyMs, reply: r.text.slice(0, 40) });
@@ -94,6 +96,28 @@ export async function handle(rawEnv, request, url) {
   if (path === '/api/dev/brain/notes' && method === 'POST') return json(await store.addNote(rawEnv, await body(request)));
   const dn = path.match(/^\/api\/dev\/brain\/notes\/(note_[a-z0-9]{10,40})$/);
   if (dn && method === 'DELETE') return json(await store.deleteNote(rawEnv, dn[1]));
+  if (path === '/api/dev/brain/rules' && method === 'POST') return json(await store.addRule(rawEnv, await body(request)));
+  const dr = path.match(/^\/api\/dev\/brain\/rules\/(\d{1,2})$/);
+  if (dr && method === 'DELETE') return json(await store.deleteRule(rawEnv, dr[1]));
+  if (path === '/api/dev/brain/feedback' && method === 'DELETE') return json(await store.clearFeedback(rawEnv));
+
+  // Image generation (Gemini Flash Image -> Workers AI -> Pollinations)
+  if (path === '/api/dev/image' && method === 'POST') {
+    if (bump(runs, `img:${clientIp(request)}`, 60_000) > 8) throw new HttpError(429, 'Slow down: 8 images a minute.');
+    return json(await generateImage(env, await body(request)));
+  }
+
+  // Work board: the agent team cycle (think -> plan -> execute -> learn)
+  if (path === '/api/dev/work' && method === 'GET') return json(await work.getWork(rawEnv));
+  if (path === '/api/dev/work/cycle' && method === 'POST') {
+    if (bump(runs, clientIp(request), 60_000) > 20) throw new HttpError(429, 'Slow down: 20 runs a minute in dev mode.');
+    const b = await body(request);
+    return json(await work.runCycle(rawEnv, { focus: typeof b?.focus === 'string' ? b.focus : '', by: 'owner' }));
+  }
+  if (path === '/api/dev/work/autopilot' && method === 'POST') return json(await work.setAutopilot(rawEnv, (await body(request))?.on));
+  const wi = path.match(/^\/api\/dev\/work\/(w_[a-z0-9]{10,40})(?:\/(approve|reject))?$/);
+  if (wi && wi[2] && method === 'POST') return json(await work.decide(rawEnv, wi[1], wi[2], (await body(request))?.reason));
+  if (wi && !wi[2] && method === 'DELETE') return json(await work.removeItem(rawEnv, wi[1]));
 
   // Run an agent (with the Brain)
   const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);

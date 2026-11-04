@@ -13,7 +13,7 @@ export const SETTINGS = {
   SARVAM_API_KEY: { label: 'Sarvam AI key (dashboard.sarvam.ai) - natural Indian voice for Marg, paid per character after sign-up credits', secret: true, check: (v) => /^[A-Za-z0-9._-]{16,200}$/.test(v) || 'looks incomplete. Copy the whole key from dashboard.sarvam.ai' },
   MARG_SARVAM_SPEAKER: { label: 'Marg voice (optional, default shubh): shubh, priya, simran, ishita, ritu, kavya or shreya', secret: false, check: (v) => /^(shubh|priya|simran|ishita|ritu|kavya|shreya)$/.test(v) || 'must be one of shubh, priya, simran, ishita, ritu, kavya, shreya' },
   MARG_TTS_DAILY_CHARS: { label: 'Sarvam daily character limit (optional, default 5000)', secret: false, check: (v) => (/^\d{1,6}$/.test(v) && Number(v) <= 200000) || 'must be a whole number up to 200000' },
-  GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-2.5-flash)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
+  GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };
 
@@ -112,7 +112,18 @@ Content pillars: SQL (zero to interview), AI tools (Claude, Grok, ChatGPT for re
 Current series: "SQL Interview : FAANG" on YouTube (Join Trap, Integer Division Trap, Anti Join).
 Weekly rhythm: 3 long tutorials, 7 Shorts/Reels, a daily SQL challenge, 1 success story, 1 newsletter.
 North star: Weekly Active Practisers. Views are vanity; practice is value.
+Goal right now: followers and the first paying learners (SQL Sprint waitlist, workshops, AI Lab clients).
+Topic ideas: SQL interview tip, Claude workflow, resume with AI, AI agent for a small business, Excel for analysts, ChatGPT for real jobs.
+Formats that work: LinkedIn text post or carousel with one strong hook line; 30-second Reel/Short in 3 scenes (hook, value, CTA); YouTube title + description + tags; SEO keywords.
 Every piece of content ends with one clear call to action.`;
+
+export const DEFAULT_RULES = [
+  'Never invent prices, numbers, results or testimonials; use [placeholders].',
+  'Helpful first: no spam, no hard sell, no bulk or unsolicited DMs, no follow-for-follow or giveaway bait.',
+  'Nothing is posted or sent without owner approval.',
+];
+const MAX_RULES = 30;
+const MAX_FEEDBACK = 20;
 
 const MAX_KNOWLEDGE = 12000;
 const MAX_NOTES = 100;
@@ -120,13 +131,42 @@ const MAX_NOTE = 4000;
 
 export async function getBrain(env) {
   const b = env.NTS_KV ? await env.NTS_KV.get('brain', 'json') : null;
-  return { knowledge: b?.knowledge ?? DEFAULT_KNOWLEDGE, notes: b?.notes ?? [], updatedAt: b?.updatedAt ?? null, isDefault: !b?.knowledge };
+  return { knowledge: b?.knowledge ?? DEFAULT_KNOWLEDGE, notes: b?.notes ?? [], rules: b?.rules ?? [...DEFAULT_RULES], feedback: b?.feedback ?? [], updatedAt: b?.updatedAt ?? null, isDefault: !b?.knowledge };
 }
 
 async function putBrain(env, brain) {
   brain.updatedAt = nowIso();
-  await kv(env).put('brain', JSON.stringify({ knowledge: brain.knowledge, notes: brain.notes, updatedAt: brain.updatedAt }));
+  await kv(env).put('brain', JSON.stringify({ knowledge: brain.knowledge, notes: brain.notes, rules: brain.rules, feedback: brain.feedback, updatedAt: brain.updatedAt }));
   return brain;
+}
+
+export async function addRule(env, body) {
+  const text = String(body?.text ?? '').replace(/\s+/g, ' ').trim();
+  if (text.length < 3 || text.length > 300) throw new HttpError(400, 'Rule must be 3 to 300 characters.');
+  const b = await getBrain(env);
+  if (!b.rules.includes(text)) b.rules.push(text);
+  b.rules = b.rules.slice(-MAX_RULES);
+  return putBrain(env, b);
+}
+
+export async function deleteRule(env, index) {
+  const b = await getBrain(env);
+  b.rules.splice(Number(index), 1);
+  return putBrain(env, b);
+}
+
+/** Owner approvals/rejections become lessons every agent reads (newest first). */
+export async function learn(env, lesson) {
+  const b = await getBrain(env);
+  b.feedback.unshift({ text: String(lesson).slice(0, 300), at: nowIso() });
+  b.feedback = b.feedback.slice(0, MAX_FEEDBACK);
+  return putBrain(env, b);
+}
+
+export async function clearFeedback(env) {
+  const b = await getBrain(env);
+  b.feedback = [];
+  return putBrain(env, b);
 }
 
 export async function setKnowledge(env, body) {
@@ -170,5 +210,7 @@ export async function brainContext(env) {
     if (notes.length + line.length > 6000) break;
     notes += line;
   }
-  return `NTS BRAIN (company knowledge, follow it):\n${b.knowledge}${notes ? `\n\nSAVED NOTES (most recent first):\n${notes}` : ''}`;
+  const rules = b.rules.length ? `\n\nOWNER RULES (must follow):\n- ${b.rules.join('\n- ')}` : '';
+  const fb = b.feedback.length ? `\n\nRECENT OWNER FEEDBACK (learn from it: repeat what was approved, avoid what was rejected):\n- ${b.feedback.slice(0, 12).map((f) => f.text).join('\n- ')}` : '';
+  return `NTS BRAIN (company knowledge, follow it):\n${b.knowledge}${rules}${fb}${notes ? `\n\nSAVED NOTES (most recent first):\n${notes}` : ''}`;
 }
