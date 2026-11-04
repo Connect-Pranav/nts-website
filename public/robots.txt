@@ -1,7 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /dev
 Disallow: /api/
 
 Sitemap: https://nts.pravanigroup.workers.dev/sitemap.xml

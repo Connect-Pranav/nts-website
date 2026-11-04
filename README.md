@@ -28,7 +28,7 @@ npx wrangler deploy   # deploy (after `npx wrangler login`)
 `docs/AUDIT.md`, `docs/AGENT_MAPPING.md`, `migrations/0001_init.sql` (database schema for the next phase).
 
 ## Dev Mode (`/dev`)
-Token-protected agent console. Open it from the `</>` icon in the header (inside the menu on phones); search engines are told not to index it.
+Token-protected agent console. Open it at `/dev` or with Ctrl+Shift+D (no public link); search engines are told not to index it.
 - Tabs: **Agents** (run a task, Copy, Save to Brain), **Brain** (company knowledge + saved notes that every agent reads), **Settings** (add API keys from the site, encrypted in KV with a key derived from `DEV_TOKEN`; Cloudflare secrets take priority; Test button per engine).
 - Storage: KV namespace `NTS_KV`, created automatically on deploy (free tier).
 - Set the secret: `npx wrangler secret put DEV_TOKEN` (8+ characters).
@@ -44,9 +44,8 @@ Token-protected agent console. Open it from the `</>` icon in the header (inside
 | `DEV_TOKEN` | Dev Mode access |
 | `GEMINI_API_KEY` / `GROQ_API_KEY` | Running agents in Dev Mode (free tiers) |
 
-## Disha (chat + voice assistant, every page)
-All VANI features from AGENTVERSE, rebuilt for NTS: floating orb, chat panel, full-screen mode, mic input (Hindi/Hinglish/English), spoken replies, conversation mode, "Hi Disha" wake word, stop/interrupt, clear chat, opening brief, suggestion chips, and a local rule brain when no AI key is set.
-- **Visitors:** answers from public NTS knowledge, navigates pages, opens YouTube/Instagram/LinkedIn. Free device voice.
-- **Owner** (Dev token entered in this tab): Disha reads the Brain, runs the 3 agents (LinkedIn Content Writer, Social Media Manager, Growth & Analytics), saves results to the Brain, opens Dev tabs.
-- **Voice:** owner can use Sarvam Bulbul (`SARVAM_API_KEY` in Dev Mode → Settings; voice `DISHA_SARVAM_SPEAKER`, daily cap `DISHA_TTS_DAILY_CHARS`, default 5000). Sarvam is paid per character after sign-up credits; cached per sentence; falls back to the free device voice. Visitors never use Sarvam.
-- API: `POST /api/disha/chat`, `GET /api/disha/voice` (owner), `POST /api/disha/tts` (owner).
+## Disha and Marg (WhatsApp-style chat + voice)
+Two separate assistants with all VANI features: WhatsApp-style window (avatar, online/typing status, bubbles with tails, time, blue ticks, doodle wallpaper, emoji picker, quick replies, mic/send button), voice input (Hindi/Hinglish/English), spoken replies (tap the speaker on any bubble to replay), conversation mode, wake word, stop, full screen, clear chat, opening brief, local rule brain when the AI is unavailable.
+- **Disha** (public pages only, logo `public/img/disha-*.webp`): public NTS knowledge, page navigation, channel links, free device voice. Never mentions internal tools. `POST /api/disha/chat` ignores any token.
+- **Marg** (inside Dev Mode only, after the token): reads the Brain, runs the 3 agents, Save to Brain, opens Dev tabs, Sarvam voice (`SARVAM_API_KEY`, `MARG_SARVAM_SPEAKER` default `shubh`, `MARG_TTS_DAILY_CHARS` default 5000). `POST /api/marg/chat`, `GET /api/marg/voice`, `POST /api/marg/tts` (owner only).
+- The public site has no link to Dev Mode. Open it at `/dev` or press **Ctrl+Shift+D**.

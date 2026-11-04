@@ -23,29 +23,31 @@ function mockGemini(reply) {
   return { seen, restore: () => (globalThis.fetch = orig) };
 }
 
-test('public chat: answers with public knowledge, strips owner-only actions', async () => {
-  const g = mockGemini({ reply: 'SQL Sprint dekhiye!', say: 'SQL Sprint देखिए!', actions: [{ type: 'navigate', value: '/academy' }, { type: 'run_agent', id: 'ops_maya_docs', value: 'x post' }, { type: 'navigate', value: '/dev' }] });
+test('public chat (Disha): public knowledge only, never owner actions, even with a dev token', async () => {
+  const g = mockGemini({ reply: 'SQL Sprint dekhiye! 🚀', say: 'SQL Sprint देखिए! 🚀', actions: [{ type: 'navigate', value: '/academy' }, { type: 'run_agent', id: 'ops_maya_docs', value: 'x post' }, { type: 'navigate', value: '/dev' }] });
   try {
-    const r = await site.fetch(post('/api/disha/chat', { messages: [{ role: 'user', text: 'SQL kaise seekhun?' }], page: '/' }), base(), {});
+    const r = await site.fetch(post('/api/disha/chat', { messages: [{ role: 'user', text: 'SQL kaise seekhun?' }], page: '/' }, { token: TOKEN }), base(), {});
     const d = await r.json();
     assert.equal(r.status, 200);
-    assert.equal(d.owner, false);
     assert.deepEqual(d.actions, [{ type: 'navigate', value: '/academy' }]);
     const sys = g.seen.body.systemInstruction.parts[0].text;
     assert.match(sys, /DISHA/);
     assert.match(sys, /SQL Sprint/);
-    assert.doesNotMatch(sys, /run_agent/);
+    assert.doesNotMatch(sys, /run_agent|NTS BRAIN|\/dev|Dev Mode|MARG/);
+    assert.doesNotMatch(d.say, /\p{Extended_Pictographic}/u);
   } finally {
     g.restore();
   }
 });
 
-test('owner chat: gets Brain + agent actions', async () => {
+test('Marg chat: owner only, gets Brain + agent actions', async () => {
+  assert.equal((await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'hi' }] }), base(), {})).status, 401);
   const g = mockGemini({ reply: 'LinkedIn writer ko kaam de diya.', actions: [{ type: 'run_agent', id: 'ops_maya_docs', value: 'Write a LinkedIn post on JOIN traps' }, { type: 'open_tab', value: 'brain' }] });
   try {
-    const r = await site.fetch(post('/api/disha/chat', { messages: [{ role: 'user', text: 'JOIN trap pe LinkedIn post likho' }], page: '/dev' }, { token: TOKEN }), base(), {});
+    const r = await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'JOIN trap pe LinkedIn post likho' }], page: '/dev' }, { token: TOKEN }), base(), {});
     const d = await r.json();
-    assert.equal(d.owner, true);
+    assert.equal(r.status, 200);
+    assert.match(g.seen.body.systemInstruction.parts[0].text, /MARG/);
     assert.deepEqual(d.actions.map((a) => a.type), ['run_agent', 'open_tab']);
     assert.match(g.seen.body.systemInstruction.parts[0].text, /NTS BRAIN/);
   } finally {
@@ -58,8 +60,8 @@ test('cleanActions rejects unknown agents and bad pages', () => {
 });
 
 test('voice endpoints are owner only; tts uses Sarvam with cap and cache', async () => {
-  const env = base({ SARVAM_API_KEY: 'sk_sarvam_test_1234567890', DISHA_TTS_DAILY_CHARS: '20' });
-  assert.equal((await site.fetch(post('/api/disha/tts', { text: 'Namaste' }), env, {})).status, 401);
+  const env = base({ SARVAM_API_KEY: 'sk_sarvam_test_1234567890', MARG_TTS_DAILY_CHARS: '20' });
+  assert.equal((await site.fetch(post('/api/marg/tts', { text: 'Namaste' }), env, {})).status, 401);
   const orig = globalThis.fetch;
   let calls = 0;
   let sent;
@@ -69,16 +71,20 @@ test('voice endpoints are owner only; tts uses Sarvam with cap and cache', async
     return new Response(JSON.stringify({ audios: [btoa('ID3fakeaudio')] }), { status: 200 });
   };
   try {
-    let r = await site.fetch(post('/api/disha/tts', { text: 'Namaste' }, { token: TOKEN }), env, {});
+    let r = await site.fetch(post('/api/marg/tts', { text: 'Namaste' }, { token: TOKEN }), env, {});
     assert.equal(r.status, 200);
     assert.equal(r.headers.get('content-type'), 'audio/mpeg');
     assert.equal(sent.target_language_code, 'en-IN');
-    assert.equal(sent.speaker, 'priya');
-    r = await site.fetch(post('/api/disha/tts', { text: 'Namaste' }, { token: TOKEN }), env, {});
+    assert.equal(sent.speaker, 'shubh');
+    r = await site.fetch(post('/api/marg/tts', { text: 'Namaste' }, { token: TOKEN }), env, {});
     assert.equal(calls, 1, 'second call served from cache');
-    r = await site.fetch(post('/api/disha/tts', { text: 'This sentence is too long for the cap' }, { token: TOKEN }), env, {});
+    r = await site.fetch(post('/api/marg/tts', { text: 'This sentence is too long for the cap' }, { token: TOKEN }), env, {});
     assert.equal(r.status, 429);
   } finally {
     globalThis.fetch = orig;
   }
+});
+
+test('old Disha owner endpoints are gone', async () => {
+  assert.equal((await site.fetch(post('/api/disha/tts', { text: 'x' }, { token: TOKEN }), base(), {})).status, 404);
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Brain, GearSix, LockKey, LockKeyOpen, Robot, X } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel } from './DevPanels';
+import { Assistant } from '../components/Assistant';
 import { GlassButton } from '../components/GlassButton';
 import './Dev.css';
 
@@ -248,6 +249,7 @@ export function Dev() {
       </ul>
       )}
       {open && <RunPanel token={token} agent={open} onClose={() => setOpen(null)} />}
+      <Assistant kind="marg" token={token} />
     </section>
   );
 }

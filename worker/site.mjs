@@ -112,7 +112,7 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
     if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
-    if (url.pathname.startsWith('/api/disha/')) {
+    if (url.pathname.startsWith('/api/disha/') || url.pathname.startsWith('/api/marg/')) {
       try {
         return await disha.handle(env, request, url);
       } catch (e) {

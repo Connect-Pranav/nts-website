@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { SearchDialog } from './components/SearchDialog';
 import { VideoModal } from './components/VideoModal';
-import { Disha } from './components/Disha';
+import { Assistant } from './components/Assistant';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/SimplePage';
 import { About } from './pages/About';
@@ -24,7 +24,7 @@ const ROUTES: Record<string, { title: string; render: () => JSX.Element }> = {
   '/dev': { title: 'Dev Mode', render: () => <Dev /> },
 };
 import { SITE } from './config';
-import { usePath } from './lib/router';
+import { navigate, usePath } from './lib/router';
 import { useTheme } from './lib/theme';
 import { loadYouTube } from './lib/youtube';
 
@@ -38,6 +38,11 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        navigate('/dev');
+        return;
+      }
       if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing)) {
         e.preventDefault();
         setSearchOpen(true);
@@ -97,7 +102,7 @@ export function App() {
       </main>
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <Disha />
+      {path !== '/dev' && <Assistant kind="disha" />}
       {introId && <VideoModal videoId={introId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
     </>
   );

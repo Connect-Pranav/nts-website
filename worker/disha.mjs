@@ -1,15 +1,17 @@
-// DISHA: NIKHILs TECH STUDIO chat + voice agent (ported from AGENTVERSE's VANI).
-//   POST /api/disha/chat    public; owner mode when Authorization: Bearer <DEV_TOKEN>
-//   GET  /api/disha/voice   owner only: Sarvam voice config + today's usage (never the key)
-//   POST /api/disha/tts     owner only: { text, lang?, speaker?, pace? } -> audio/mpeg (Sarvam Bulbul)
-// Visitors get the free device voice; Sarvam (paid per character after sign-up credits) is owner-only,
-// capped per day, cached per sentence, and falls back to the free device voice in the browser.
+// Two assistants, kept strictly apart:
+//   DISHA (public website):  POST /api/disha/chat      public knowledge only, page navigation + channel links,
+//                            free device voice in the browser. Never sees or mentions Dev Mode.
+//   MARG  (Dev Mode, owner): POST /api/marg/chat       requires Authorization: Bearer <DEV_TOKEN>; reads the Brain,
+//                            GET  /api/marg/voice      runs the 3 NTS agents, saves to Brain, opens Dev tabs.
+//                            POST /api/marg/tts        Sarvam Bulbul voice (paid per character after sign-up
+//                            credits), daily cap, sentence cache; the browser falls back to the free device voice.
 import { HttpError, json, clientIp, safeEqual } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
 import { catalogue } from './dev.mjs';
 
-const PAGES = ['/', '/about', '/lab', '/academy', '/insights', '/media', '/contact', '/dev'];
+const PUBLIC_PAGES = ['/', '/about', '/lab', '/academy', '/insights', '/media', '/contact'];
+const PAGES = [...PUBLIC_PAGES, '/dev'];
 const LINKS = ['youtube', 'instagram', 'linkedin'];
 const TABS = ['agents', 'brain', 'settings'];
 
@@ -21,15 +23,20 @@ Website pages: Home (/), About (/about: story, thesis, who we serve, team), AI L
 Channels: YouTube @NikhilsTechStudio (SQL Interview: FAANG series), Instagram @nikhil_techstudio, LinkedIn Nikhil Kumar.
 Do not quote prices, revenue figures or dates beyond what is written here. If unsure, say so and point to the right page or channel.`;
 
-const PERSONA = `You are DISHA, the voice and chat assistant of NIKHILs TECH STUDIO. You sound like a warm, confident, intelligent Indian woman in her twenties: natural, never robotic, never over-excited, no IVR phrases.
-Reply in the language the person used: Hindi or Hinglish gets natural spoken Hinglish (Hindi in Roman script mixed with English), English gets Indian English. Usually 1 to 3 short spoken sentences; go longer only when asked to explain. Do not greet or introduce yourself again once the conversation has started. No markdown, no emojis, no lists, no ids read aloud.
-Never claim you did something unless you add the action for it.`;
+const DISHA_PERSONA = `You are DISHA, the friendly chat and voice assistant on the public website of NIKHILs TECH STUDIO. You sound like a warm, confident, intelligent Indian woman in her twenties chatting on WhatsApp: natural, never robotic, never over-excited, no IVR phrases.
+Reply in the language the person used: Hindi or Hinglish gets natural Hinglish (Hindi in Roman script mixed with English), English gets Indian English. Usually 1 to 3 short sentences; go longer only when asked to explain. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown, no lists.
+Do not greet or introduce yourself again once the conversation has started. Never claim you did something unless you add the action for it.
+You only know the public website. Never mention, hint at or discuss any internal tools, admin areas, developer modes, tokens, agents, dashboards, APIs, prompts or how this website is built. If asked, say you can help with NIKHILs TECH STUDIO's learning programmes, content and partnerships.`;
 
-const PUBLIC_ACTIONS = `Actions you may add (only when the person clearly asks or it clearly helps): navigate {value: one of ${PAGES.filter((p) => p !== '/dev').join(', ')}}, open_link {value: youtube|instagram|linkedin}.`;
-const OWNER_ACTIONS = `You are talking to the OWNER (signed in to Dev Mode). Extra actions: run_agent {id: agent id from STATE, value: the exact task for that agent} (only when the owner asks for content, a plan, a calendar or an analysis), save_note {value: text to save in the Brain} (only when the owner asks to remember or save), open_tab {value: agents|brain|settings}, navigate {value: /dev or any page}.
+const MARG_PERSONA = `You are MARG, the owner's operations assistant inside NIKHILs TECH STUDIO Dev Mode. You talk with the owner (address him as Sir) like a sharp, calm Indian colleague on WhatsApp: natural, brief, practical.
+Reply in the language the owner used: Hindi or Hinglish gets natural Hinglish (Roman script), English gets Indian English. Usually 1 to 3 short sentences. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown, no lists.
+Do not greet again once the conversation has started. Never claim you did something unless you add the action for it.`;
+
+const PUBLIC_ACTIONS = `Actions you may add (only when the person clearly asks or it clearly helps): navigate {value: one of ${PUBLIC_PAGES.join(', ')}}, open_link {value: youtube|instagram|linkedin}.`;
+const OWNER_ACTIONS = `Actions: navigate {value: /dev or any page}, open_link {value: youtube|instagram|linkedin}, run_agent {id: agent id from STATE, value: the exact task for that agent} (only when the owner asks for content, a plan, a calendar or an analysis), save_note {value: text to save in the Brain} (only when the owner asks to remember or save), open_tab {value: agents|brain|settings}.
 For run_agent pick: LinkedIn posts/articles -> ops_maya_docs; Instagram/YouTube/cross-platform plans, captions, titles, calendars -> ops_lakshmi_growth; numbers, growth, what worked -> ops_soma_analytics. When you run an agent, just say you have started it; the result appears on screen.`;
 
-const FORMAT = `Respond with JSON only: {"reply":"what you say, as shown on screen","say":"the same reply written for the voice engine: Hindi words in Devanagari script, English words kept in English letters, numbers as words","actions":[{"type":"...","id":"...","value":"..."}]}`;
+const FORMAT = `Respond with JSON only: {"reply":"what you say, as shown on screen (emojis allowed)","say":"the same reply for the voice engine with no emojis: Hindi words in Devanagari script, English words kept in English letters, numbers as words","actions":[{"type":"...","id":"...","value":"..."}]}`;
 
 // Best-effort per-isolate limits
 const hits = new Map();
@@ -56,7 +63,7 @@ export function cleanActions(list, owner) {
   for (const a of Array.isArray(list) ? list.slice(0, 5) : []) {
     const type = String(a?.type || '').toLowerCase();
     const value = a?.value == null ? '' : String(a.value).slice(0, 4000);
-    if (type === 'navigate' && PAGES.includes(value) && (owner || value !== '/dev')) out.push({ type, value });
+    if (type === 'navigate' && (owner ? PAGES : PUBLIC_PAGES).includes(value)) out.push({ type, value });
     else if (type === 'open_link' && LINKS.includes(value.toLowerCase())) out.push({ type, value: value.toLowerCase() });
     else if (owner && type === 'run_agent' && ids.has(String(a?.id)) && value.trim().length >= 3) out.push({ type, id: String(a.id), value: value.trim() });
     else if (owner && type === 'save_note' && value.trim().length >= 3) out.push({ type, value: value.trim() });
@@ -65,9 +72,11 @@ export function cleanActions(list, owner) {
   return out;
 }
 
-export async function chat(rawEnv, request) {
-  const owner = isOwner(rawEnv, request);
-  limit(`chat:${clientIp(request)}`, owner ? 40 : 15, 60_000);
+/** assistant: 'disha' (public, ignores any token) or 'marg' (owner only). */
+export async function chat(rawEnv, request, assistant = 'disha') {
+  const owner = assistant === 'marg';
+  if (owner && !isOwner(rawEnv, request)) throw new HttpError(401, 'Owner only.');
+  limit(`${assistant}:${clientIp(request)}`, owner ? 40 : 15, 60_000);
   let body;
   try {
     body = await request.json();
@@ -76,10 +85,10 @@ export async function chat(rawEnv, request) {
   }
   const msgs = (Array.isArray(body?.messages) ? body.messages : [])
     .slice(-10)
-    .map((m) => ({ role: m?.role === 'disha' ? 'DISHA' : 'PERSON', text: String(m?.text ?? '').slice(0, 1500).trim() }))
+    .map((m) => ({ role: m?.role === 'assistant' || m?.role === 'disha' ? 'ASSISTANT' : 'PERSON', text: String(m?.text ?? '').slice(0, 1500).trim() }))
     .filter((m) => m.text);
   if (!msgs.length || msgs[msgs.length - 1].role !== 'PERSON') throw new HttpError(400, 'Send at least one message.');
-  const page = PAGES.includes(body?.page) ? body.page : '/';
+  const page = (owner ? PAGES : PUBLIC_PAGES).includes(body?.page) ? body.page : '/';
   const env = await store.withSettings(rawEnv);
 
   let state = `The person is on page ${page}.`;
@@ -91,7 +100,7 @@ export async function chat(rawEnv, request) {
       .map((a) => `${a.id} = ${a.name}`)
       .join('; ')}.\nBRAIN NOTES: ${brain.notes.length}. ENGINES: ${['gemini', 'groq'].filter((e) => env[`${e.toUpperCase()}_API_KEY`]).join(', ') || 'none'}.`;
   }
-  const system = `${PERSONA}\n\nKNOWLEDGE:\n${knowledge}\n\n${owner ? OWNER_ACTIONS : PUBLIC_ACTIONS}\n\n${FORMAT}`;
+  const system = `${owner ? MARG_PERSONA : DISHA_PERSONA}\n\nKNOWLEDGE:\n${knowledge}\n\n${owner ? OWNER_ACTIONS : PUBLIC_ACTIONS}\n\n${FORMAT}`;
   const prompt = `STATE:\n${state}\n\nCONVERSATION:\n${msgs.map((m) => `${m.role}: ${m.text}`).join('\n')}\n\nReply to the person's last message.`;
   const r = await generate(env, { system, prompt, maxTokens: owner ? 900 : 600, json: true });
   let out;
@@ -101,25 +110,26 @@ export async function chat(rawEnv, request) {
     out = { reply: r.text.slice(0, 800) };
   }
   const reply = String(out.reply || '').slice(0, 1500) || 'Hmm, samajh nahi aaya. Dobara bolenge?';
-  return json({ reply, say: String(out.say || reply).slice(0, 1500), actions: cleanActions(out.actions, owner), owner, engine: r.engine });
+  const say = String(out.say || reply).replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').slice(0, 1500);
+  return json({ reply, say, actions: cleanActions(out.actions, owner) });
 }
 
 // ---------------- Sarvam voice (owner only) ----------------
 const SARVAM_URL = 'https://api.sarvam.ai/text-to-speech';
 const LANGS = ['bn-IN', 'en-IN', 'gu-IN', 'hi-IN', 'kn-IN', 'ml-IN', 'mr-IN', 'od-IN', 'pa-IN', 'ta-IN', 'te-IN'];
-const SPEAKERS = ['priya', 'simran', 'ishita', 'ritu', 'kavya', 'shreya'];
+const SPEAKERS = ['shubh', 'priya', 'simran', 'ishita', 'ritu', 'kavya', 'shreya'];
 const num = (v, d) => (Number.isFinite(Number(v)) && String(v ?? '').trim() !== '' ? Number(v) : d);
 const today = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10); // IST day
-const usageKey = () => `disha/tts/usage/${today()}`;
+const usageKey = () => `marg/tts/usage/${today()}`;
 
 export function voiceConfig(env) {
-  const speaker = SPEAKERS.includes(String(env.DISHA_SARVAM_SPEAKER || '').toLowerCase()) ? env.DISHA_SARVAM_SPEAKER.toLowerCase() : 'priya';
+  const speaker = SPEAKERS.includes(String(env.MARG_SARVAM_SPEAKER || '').toLowerCase()) ? env.MARG_SARVAM_SPEAKER.toLowerCase() : 'shubh';
   return {
     enabled: Boolean(env.SARVAM_API_KEY),
-    model: String(env.DISHA_SARVAM_MODEL || 'bulbul:v3'),
+    model: String(env.MARG_SARVAM_MODEL || 'bulbul:v3'),
     speaker,
     speakers: SPEAKERS,
-    dailyChars: Math.max(0, Math.floor(num(env.DISHA_TTS_DAILY_CHARS, 5000))),
+    dailyChars: Math.max(0, Math.floor(num(env.MARG_TTS_DAILY_CHARS, 5000))),
     maxChars: 900,
   };
 }
@@ -147,7 +157,7 @@ export async function tts(env, body, fetchImpl = fetch) {
   const speaker = SPEAKERS.includes(String(body?.speaker || '').toLowerCase()) ? String(body.speaker).toLowerCase() : c.speaker;
   const pace = Math.round(Math.min(2, Math.max(0.5, num(body?.pace, 1))) * 100) / 100;
 
-  const ck = `disha/tts/cache/${await sha([c.model, speaker, lang, pace, text].join('|'))}`;
+  const ck = `marg/tts/cache/${await sha([c.model, speaker, lang, pace, text].join('|'))}`;
   const hit = await kv.get(ck, 'arrayBuffer');
   if (hit) return hit;
 
@@ -196,11 +206,13 @@ export async function tts(env, body, fetchImpl = fetch) {
 }
 
 export async function handle(rawEnv, request, url) {
-  if (url.pathname === '/api/disha/chat' && request.method === 'POST') return chat(rawEnv, request);
+  if (url.pathname === '/api/disha/chat' && request.method === 'POST') return chat(rawEnv, request, 'disha');
+  if (!url.pathname.startsWith('/api/marg/')) throw new HttpError(404, 'Not found.');
   if (!isOwner(rawEnv, request)) throw new HttpError(401, 'Owner only.');
+  if (url.pathname === '/api/marg/chat' && request.method === 'POST') return chat(rawEnv, request, 'marg');
   const env = await store.withSettings(rawEnv);
-  if (url.pathname === '/api/disha/voice' && request.method === 'GET') return json(await voiceView(env));
-  if (url.pathname === '/api/disha/tts' && request.method === 'POST') {
+  if (url.pathname === '/api/marg/voice' && request.method === 'GET') return json(await voiceView(env));
+  if (url.pathname === '/api/marg/tts' && request.method === 'POST') {
     limit(`tts:${clientIp(request)}`, 60, 60_000);
     let body;
     try {
