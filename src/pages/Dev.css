@@ -135,10 +135,6 @@
   margin-top: 10px;
   font-size: 14px;
   color: var(--text-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 .dev__offlabel {
   font-size: 13.5px;
@@ -247,4 +243,7 @@
   white-space: pre-wrap;
   font: 15px/1.6 var(--font-body);
   color: var(--text);
+}
+.dev__grid {
+  margin-top: 28px;
 }

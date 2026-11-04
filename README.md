@@ -31,7 +31,7 @@ npx wrangler deploy   # deploy (after `npx wrangler login`)
 Token-protected agent console, hidden from navigation and search engines.
 - Set the secret: `npx wrangler secret put DEV_TOKEN` (8+ characters).
 - Open `/dev`, enter the token. It is kept in that browser tab only (sessionStorage).
-- All 32 agents are enabled: the 31 Ganesha agents (read-only snapshot in `agents/ganesha-catalog.snapshot.json`) plus Dal_Abba. Toggle any off for the session.
+- Only the agents NTS needs (registry entries with `dev: true`): **LinkedIn Content Writer** (MAYA-OPS), **Social Media Manager** for LinkedIn, Instagram and YouTube (LAKSHMI-OPS), **Growth & Analytics** (SOMA). GANESHA orchestrates the content workflow behind the scenes. No Sunverse, LittleLoop or Foliocraft agents.
 - **Run** sends a task to the agent on free engines (`GEMINI_API_KEY` or `GROQ_API_KEY` secrets). Agents only draft text: no publishing, posting, spending or deploying.
 - 10 wrong tokens from one IP lock it for 15 minutes; 20 runs per minute max.
 

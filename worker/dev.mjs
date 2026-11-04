@@ -1,8 +1,7 @@
-// Dev Mode: token-gated access to every agent (NTS bindings + full Ganesha catalogue), all enabled.
+// Dev Mode: token-gated console for the NTS agents that manage LinkedIn, Instagram and YouTube.
 // Auth: Authorization: Bearer <DEV_TOKEN> (Worker secret, 8+ characters). Constant-time compare.
 // Agents only draft text here. They cannot publish, spend money or touch any other project.
 import NTS from '../agents/registry.json' with { type: 'json' };
-import CATALOG from '../agents/ganesha-catalog.snapshot.json' with { type: 'json' };
 import { HttpError, json, safeEqual, clientIp } from './util.mjs';
 import { generate, engineStatus } from './providers.mjs';
 import { BRAND } from './agents.mjs';
@@ -35,23 +34,21 @@ export function authorize(env, request) {
   fails.delete(ip);
 }
 
-const NTS_ROLE = Object.fromEntries(NTS.agents.map((a) => [a.id, a]));
-
+/** Only the agents NTS needs (registry entries with dev: true). Orchestration runs behind the scenes. */
 export function catalogue() {
-  const agents = CATALOG.agents.map((a) => ({
-    id: a.id,
-    name: a.name,
-    team: a.team,
-    teamName: CATALOG.teams[a.team]?.name ?? a.team,
-    role: a.role,
-    mission: a.mission,
-    ntsRole: NTS_ROLE[a.id]?.label ?? null,
-    approvalRequired: a.approvalRequired ?? [],
-    enabled: true,
-  }));
-  const dal = NTS.agents.find((a) => a.id === 'dal_abba');
-  if (dal) agents.unshift({ id: dal.id, name: dal.name, team: 'nts', teamName: 'NIKHILs TECH STUDIO', role: dal.label, mission: dal.scope, ntsRole: dal.label, approvalRequired: [], enabled: true });
-  return agents;
+  return NTS.agents
+    .filter((a) => a.selected && a.dev)
+    .map((a) => ({
+      id: a.id,
+      name: a.label,
+      team: 'nts',
+      teamName: 'NIKHILs TECH STUDIO',
+      role: `${a.name} agent`,
+      mission: a.scope,
+      ntsRole: null,
+      approvalRequired: a.approvalRequired ?? [],
+      enabled: true,
+    }));
 }
 
 export async function handle(env, request, url) {
@@ -60,7 +57,7 @@ export async function handle(env, request, url) {
     return json({ ok: true, engines: engineStatus(env), agents: catalogue().length });
   }
   if (url.pathname === '/api/dev/agents' && request.method === 'GET') {
-    return json({ agents: catalogue(), source: CATALOG.source, engines: engineStatus(env) });
+    return json({ agents: catalogue(), engines: engineStatus(env) });
   }
   const m = url.pathname.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);
   if (m && request.method === 'POST') {
@@ -77,7 +74,7 @@ export async function handle(env, request, url) {
     if (task.length < 3 || task.length > 4000) throw new HttpError(400, 'Task must be 3 to 4000 characters.');
     const system = `${BRAND}
 
-You are ${agent.name}, ${agent.role} (agent id ${agent.id}), running in NIKHILs TECH STUDIO Dev Mode.
+You are the ${agent.name} for NIKHILs TECH STUDIO (agent id ${agent.id}). Channels: LinkedIn (Nikhil Kumar), Instagram @nikhil_techstudio, YouTube @NikhilsTechStudio.
 Your mission: ${agent.mission}
 Rules: produce the deliverable as text only. You cannot publish, post, spend money, deploy or contact anyone. Flag anything that would need human approval${agent.approvalRequired.length ? ` (${agent.approvalRequired.join(', ')})` : ''}. Separate facts from assumptions; never invent numbers or sources.`;
     const r = await generate(env, { system, prompt: task, maxTokens: 2500 });

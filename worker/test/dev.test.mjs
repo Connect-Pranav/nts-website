@@ -17,9 +17,9 @@ test('wrong token is rejected, right token lists every agent enabled', async () 
   const r = await site.fetch(req('/api/dev/agents', { token: TOKEN }), env, {});
   assert.equal(r.status, 200);
   const d = await r.json();
-  assert.equal(d.agents.length, 32); // 31 Ganesha catalogue + Dal_Abba
+  assert.deepEqual(d.agents.map((a) => a.name), ['LinkedIn Content Writer', 'Social Media Manager', 'Growth & Analytics']);
   assert.ok(d.agents.every((a) => a.enabled));
-  assert.ok(d.agents.some((a) => a.id === 'ganesha_orchestrator' && a.ntsRole === 'Master Orchestrator'));
+  assert.ok(!d.agents.some((a) => /sunverse|littleloop|foliocraft/i.test(a.id)));
 });
 
 test('lockout after 10 wrong tokens from one IP', async () => {
@@ -43,7 +43,7 @@ test('run validates the task and calls the engine with the agent mission', async
     const d = await r.json();
     assert.equal(d.text, 'Report ready');
     assert.equal(d.engine, 'gemini');
-    assert.match(sent.systemInstruction.parts[0].text, /SOMA/);
+    assert.match(sent.systemInstruction.parts[0].text, /Growth & Analytics/);
     assert.match(sent.systemInstruction.parts[0].text, /cannot publish/);
   } finally {
     globalThis.fetch = orig;

@@ -151,7 +151,7 @@ export function Dev() {
             Agent <em>console</em>
           </h1>
           <p className="sec__lead">
-            {enabledCount} of {agents.length} agents enabled. Agents draft text only; nothing is published or sent from here.
+            {enabledCount} of {agents.length} agents enabled for LinkedIn, Instagram and YouTube. Agents draft text only; nothing is published from here.
           </p>
         </div>
         <div className="dev__headside">
@@ -169,6 +169,7 @@ export function Dev() {
         </div>
       </header>
 
+      {teams.length > 1 && (
       <div className="dev__filters" role="toolbar" aria-label="Filter by team">
         <button type="button" className={team === 'all' ? 'on' : ''} onClick={() => setTeam('all')}>
           All ({agents.length})
@@ -182,12 +183,13 @@ export function Dev() {
           Enable all
         </button>
       </div>
+      )}
 
       <ul className="dev__grid">
         {shown.map((a) => {
           const enabled = !off.includes(a.id);
           return (
-            <li key={a.id} className={`dev__agent glass ${enabled ? '' : 'is-off'}`}>
+            <li key={a.id} className={`dev__agent glass ${enabled ? '' : 'is-off'}`} style={{ marginTop: 0 }}>
               <div className="dev__agenttop">
                 <Robot size={26} weight="light" aria-hidden="true" className="card__icon" />
                 <label className="dev__switch">
