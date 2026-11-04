@@ -5,7 +5,7 @@
   max-width: calc(100vw - 24px);
 }
 .dlg::backdrop {
-  background: rgba(1, 12, 11, 0.62);
+  background: var(--scrim);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }

@@ -104,7 +104,7 @@
 @media (hover: hover) {
   .ecard:hover {
     transform: translateY(-4px);
-    border-color: rgba(120, 245, 217, 0.5);
+    border-color: rgba(var(--accent-rgb), 0.5);
   }
   .ecard:hover .ecard__arrow {
     transform: translateX(4px);

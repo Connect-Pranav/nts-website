@@ -2,7 +2,7 @@
 
 India's Practice Gym for the AI Era. Learn. Practice. Simulate. Grow.
 
-**Status:** Homepage built to the approved Emerald Teal glassmorphism design, with Founder's note and Vision/Mission/Values. About, AI Lab, Academy, Media Hub, Insights and Contact are filled from the Company Blueprint Book (Edition 1). Internal-only material (pricing, revenue targets, finance, risks, legal) is deliberately not published. The admin dashboard, social integrations and agents come in the next phases (backend modules already in `worker/`, not yet wired).
+**Status:** Homepage built to the approved Graphite & Gold glassmorphism design (Emerald Teal was the earlier version), with Founder's note and Vision/Mission/Values. About, AI Lab, Academy, Media Hub, Insights and Contact are filled from the Company Blueprint Book (Edition 1). Internal-only material (pricing, revenue targets, finance, risks, legal) is deliberately not published. The admin dashboard, social integrations and agents come in the next phases (backend modules already in `worker/`, not yet wired).
 
 ## Stack
 React 18 + TypeScript + Vite, plain CSS with design tokens (`src/styles/tokens.css`). Hosted on Cloudflare Workers (free tier, static assets with SPA fallback). This is the same stack as Ganesha AI Studio, but kept fully separate.
@@ -18,7 +18,8 @@ npx wrangler deploy   # deploy (after `npx wrangler login`)
 ## Edit
 - Intro video for **Watch Intro**: set `introVideoId` in `src/config.ts`. While it's empty, the button opens the YouTube channel.
 - Social links and nav: `src/config.ts`.
-- Colours: `src/styles/tokens.css` (dark + light modes of one Emerald Teal palette).
+- Colours: `src/styles/tokens.css` (dark + light modes of one Graphite & Gold palette: #17191D, #24262A, #AEB2B8, #D8B98B, #F5F1E9).
+- YouTube tile (homepage): plays the channel's uploads as a looping, muted playlist via `/api/public/youtube` (needs `YOUTUBE_API_KEY`). Without the key it shows a link to the channel.
 
 ## Components
 `Header`, `HeroSection`, `GlassButton`, `FeaturePillars`, `ExploreCards`, `Footer`, `SearchDialog`, `VideoModal`.

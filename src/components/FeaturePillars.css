@@ -53,7 +53,7 @@
   }
   .pillar:hover .pillar__icon {
     color: var(--mint);
-    filter: drop-shadow(0 0 10px rgba(120, 245, 217, 0.45));
+    filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), 0.45));
   }
 }
 

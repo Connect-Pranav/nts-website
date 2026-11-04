@@ -29,7 +29,7 @@
   justify-content: flex-end;
   min-height: 320px;
   background:
-    radial-gradient(90% 70% at 90% 0%, rgba(0, 214, 181, 0.28), transparent 65%),
+    radial-gradient(90% 70% at 90% 0%, rgba(var(--accent-rgb), 0.2), transparent 65%),
     linear-gradient(140deg, var(--glass-highlight), transparent 60%),
     var(--glass);
 }

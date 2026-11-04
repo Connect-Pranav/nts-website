@@ -26,7 +26,7 @@
   height: 58px;
   border-radius: 50%;
   object-fit: cover;
-  box-shadow: 0 0 0 2px rgba(120, 245, 217, 0.35);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.45);
 }
 .hdr__word {
   display: flex;

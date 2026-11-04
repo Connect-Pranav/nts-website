@@ -29,10 +29,10 @@ export function HeroSection({ onWatchIntro }: Props) {
         </div>
         <div className="hero__visual">
           <img
-            src="/img/hero-studio.webp"
+            src="/img/hero-studio-gold.webp"
             width={902}
             height={427}
-            alt="A laptop showing the NIKHILs TECH STUDIO logo next to a branded studio coffee mug on a dark emerald desk"
+            alt="A laptop showing the NIKHILs TECH STUDIO logo next to a branded studio coffee mug on a dark desk with warm gold light"
             fetchPriority="high"
             decoding="async"
           />

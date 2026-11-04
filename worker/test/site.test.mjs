@@ -29,3 +29,17 @@ test('API error message never leaks the key', async () => {
   const f = async () => ({ ok: false, status: 403, json: async () => ({ error: { message: 'bad key secretKEY123' } }) });
   await assert.rejects(latestVideo({ YOUTUBE_API_KEY: 'secretKEY123' }, f), (e) => !e.message.includes('secretKEY123'));
 });
+
+test('channelVideos returns uploads playlist and videos, skipping private ones', async () => {
+  const { channelVideos } = await import('../site.mjs');
+  const f = fake({
+    channels: () => ({ items: [{ id: 'UCx', snippet: { title: 'NikhilsTechStudio' }, contentDetails: { relatedPlaylists: { uploads: 'UUx' } } }] }),
+    playlistItems: () => ({ items: [
+      { snippet: { title: 'Anti Join', thumbnails: { medium: { url: 'https://i.ytimg.com/a.jpg' } } }, contentDetails: { videoId: 'AAAAAAAAAAA' } },
+      { snippet: { title: 'Private video' }, contentDetails: { videoId: 'BBBBBBBBBBB' } },
+    ] }),
+  });
+  const d = await channelVideos({ YOUTUBE_API_KEY: 'k' }, f);
+  assert.equal(d.channel.uploadsPlaylistId, 'UUx');
+  assert.deepEqual(d.videos.map((v) => v.id), ['AAAAAAAAAAA']);
+});

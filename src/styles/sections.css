@@ -135,7 +135,7 @@
   a.card:hover,
   .card--hover:hover {
     transform: translateY(-3px);
-    border-color: rgba(120, 245, 217, 0.5);
+    border-color: rgba(var(--accent-rgb), 0.5);
   }
 }
 
@@ -343,7 +343,7 @@
   justify-content: space-between;
   gap: 24px;
   background:
-    radial-gradient(70% 140% at 100% 0%, rgba(0, 214, 181, 0.2), transparent 60%),
+    radial-gradient(70% 140% at 100% 0%, rgba(var(--accent-rgb), 0.16), transparent 60%),
     linear-gradient(140deg, var(--glass-highlight), transparent 60%),
     var(--glass);
 }

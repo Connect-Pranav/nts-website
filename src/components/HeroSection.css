@@ -40,7 +40,7 @@
   white-space: nowrap;
 }
 .hero__grow {
-  background: linear-gradient(95deg, var(--emerald) 0%, var(--teal) 45%, var(--mint) 100%);
+  background: linear-gradient(95deg, var(--emerald) 0%, var(--teal) 50%, var(--mint) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

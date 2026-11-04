@@ -1,58 +1,65 @@
-/* NIKHILs TECH STUDIO design tokens: Emerald Teal (approved). One palette, dark default + light mode of the same palette. */
+/* NIKHILs TECH STUDIO design tokens: Graphite & Gold (approved Nov 2026).
+   Palette: #17191D graphite, #24262A surface, #AEB2B8 silver, #D8B98B champagne gold, #F5F1E9 ivory.
+   Variable names (--emerald/--teal/--mint) are kept as the accent ramp so components stay unchanged:
+   --emerald = deep gold, --teal = champagne gold, --mint = light gold. */
 :root,
 [data-theme='dark'] {
-  --bg: #031a18;
-  --bg-2: #062824;
-  --surface: #092f2a;
+  --bg: #111214;
+  --bg-2: #17191d;
+  --surface: #24262a;
 
-  --emerald: #00b894;
-  --teal: #00d6b5;
-  --mint: #78f5d9;
+  --emerald: #c49a52;
+  --teal: #d8b98b;
+  --mint: #ecd6ad;
 
-  --text: #f5faf8;
-  --text-2: #b5cbc4;
-  --muted: #829b93;
+  --text: #f5f1e9;
+  --text-2: #aeb2b8;
+  --muted: #868a91;
 
-  --glass: rgba(255, 255, 255, 0.07);
-  --glass-strong: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(120, 245, 217, 0.24);
-  --glass-highlight: rgba(120, 245, 217, 0.12);
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-strong: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(216, 185, 139, 0.2);
+  --glass-highlight: rgba(216, 185, 139, 0.08);
 
-  --on-accent: #032420;
-  --btn-a: #00b894;
-  --btn-b: #78f5d9;
-  --shadow: 0 24px 60px rgba(0, 12, 10, 0.55);
-  --ambient-1: rgba(0, 214, 181, 0.22);
-  --ambient-2: rgba(0, 184, 148, 0.14);
-  --ribbon: rgba(120, 245, 217, 0.5);
+  --accent-rgb: 216, 185, 139;
+  --scrim: rgba(8, 8, 10, 0.68);
+  --on-accent: #17191d;
+  --btn-a: #c9a15f;
+  --btn-b: #ecd2a2;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --ambient-1: rgba(216, 185, 139, 0.14);
+  --ambient-2: rgba(174, 178, 184, 0.07);
+  --ribbon: rgba(216, 185, 139, 0.55);
   color-scheme: dark;
 }
 
 [data-theme='light'] {
-  --bg: #f3faf8;
-  --bg-2: #e7f4f0;
+  --bg: #f5f1e9;
+  --bg-2: #ede7db;
   --surface: #ffffff;
 
-  --emerald: #00876c;
-  --teal: #00a88e;
-  --mint: #3fd6b5;
+  --emerald: #8a6a2f;
+  --teal: #9a7738;
+  --mint: #b8924f;
 
-  --text: #052b26;
-  --text-2: #2e5049;
-  --muted: #557069;
+  --text: #17191d;
+  --text-2: #3d4046;
+  --muted: #5e6168;
 
-  --glass: rgba(255, 255, 255, 0.62);
-  --glass-strong: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 135, 108, 0.22);
-  --glass-highlight: rgba(0, 168, 142, 0.1);
+  --glass: rgba(255, 255, 255, 0.6);
+  --glass-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(138, 106, 47, 0.22);
+  --glass-highlight: rgba(138, 106, 47, 0.07);
 
-  --on-accent: #ffffff;
-  --btn-a: #006b55;
-  --btn-b: #00927a;
-  --shadow: 0 20px 50px rgba(3, 60, 50, 0.14);
-  --ambient-1: rgba(0, 168, 142, 0.16);
-  --ambient-2: rgba(63, 214, 181, 0.14);
-  --ribbon: rgba(0, 168, 142, 0.35);
+  --accent-rgb: 138, 106, 47;
+  --scrim: rgba(23, 25, 29, 0.45);
+  --on-accent: #17191d;
+  --btn-a: #c9a15f;
+  --btn-b: #e6c993;
+  --shadow: 0 20px 50px rgba(23, 25, 29, 0.12);
+  --ambient-1: rgba(216, 185, 139, 0.3);
+  --ambient-2: rgba(174, 178, 184, 0.2);
+  --ribbon: rgba(160, 125, 60, 0.4);
   color-scheme: light;
 }
 

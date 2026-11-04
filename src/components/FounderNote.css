@@ -23,8 +23,8 @@
   pointer-events: none;
   background:
     linear-gradient(90deg, transparent 55%, var(--bg-2) 100%),
-    linear-gradient(0deg, rgba(3, 26, 24, 0.55) 0%, transparent 35%),
-    radial-gradient(80% 60% at 50% 30%, transparent 40%, rgba(0, 184, 148, 0.18) 100%);
+    linear-gradient(0deg, rgba(17, 18, 20, 0.6) 0%, transparent 35%),
+    radial-gradient(80% 60% at 50% 30%, transparent 40%, rgba(var(--accent-rgb), 0.1) 100%);
   mix-blend-mode: normal;
 }
 .founder__copy {
@@ -82,6 +82,6 @@
   .founder__photo::after {
     background:
       linear-gradient(0deg, var(--bg-2) 0%, transparent 40%),
-      radial-gradient(80% 60% at 50% 30%, transparent 40%, rgba(0, 184, 148, 0.18) 100%);
+      radial-gradient(80% 60% at 50% 30%, transparent 40%, rgba(var(--accent-rgb), 0.1) 100%);
   }
 }

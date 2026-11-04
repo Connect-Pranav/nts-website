@@ -25,6 +25,7 @@ const ROUTES: Record<string, { title: string; render: () => JSX.Element }> = {
 import { SITE } from './config';
 import { usePath } from './lib/router';
 import { useTheme } from './lib/theme';
+import { loadYouTube } from './lib/youtube';
 
 export function App() {
   const path = usePath();
@@ -57,12 +58,10 @@ export function App() {
   useEffect(() => {
     if (SITE.introVideoId) return;
     let alive = true;
-    fetch('/api/public/intro')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { videoId?: string | null } | null) => {
-        if (alive && d?.videoId && /^[A-Za-z0-9_-]{11}$/.test(d.videoId)) setIntroId(d.videoId);
-      })
-      .catch(() => undefined);
+    loadYouTube().then((d) => {
+      const v = d?.videos[0];
+      if (alive && v) setIntroId(v.id);
+    });
     return () => {
       alive = false;
     };
