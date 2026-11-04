@@ -1,7 +1,7 @@
 // NTS COMMAND module pages. Every number comes from stored records or a live integration;
 // integrations without credentials show a clear "not connected" state.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowSquareOut, CheckCircle, CircleNotch, Copy, GitBranch, Heartbeat, LinkedinLogo, MagnifyingGlass, Play, Plus, Rocket, ShieldCheck, Trash, UsersThree, XCircle, YoutubeLogo, InstagramLogo, PaperPlaneTilt, CalendarBlank } from '@phosphor-icons/react';
+import { ArrowSquareOut, CheckCircle, CircleNotch, Copy, GitBranch, Heartbeat, LinkedinLogo, MagnifyingGlass, Play, Plus, Rocket, ShieldCheck, Trash, UsersThree, XCircle, YoutubeLogo, InstagramLogo, PaperPlaneTilt, CalendarBlank, PencilSimpleLine } from '@phosphor-icons/react';
 import type { Api, Go } from './shared';
 import { Card, Empty, Pill, ago, toneOf, when } from './shared';
 
@@ -461,7 +461,32 @@ export function LinkedInPage({ api }: { api: Api }) {
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [posted, setPosted] = useState<Record<string, string>>({});
-  const load = useCallback(() => api<{ items: WorkItem[] }>('/api/dev/work').then((d) => setItems(d.items.filter((i) => i.channel === 'LinkedIn'))), [api]);
+  const [li, setLi] = useState<{ configured: boolean; connected: boolean; expired: boolean; name: string | null; expiresAt: string | null; redirectUri: string } | null>(null);
+  const load = useCallback(() => {
+    api<{ items: WorkItem[] }>('/api/dev/work').then((d) => setItems(d.items.filter((i) => i.channel === 'LinkedIn')));
+    api<typeof li>('/api/dev/linkedin').then(setLi, () => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+  const connectLi = async () => {
+    setErr('');
+    try {
+      window.location.href = (await api<{ url: string }>('/api/dev/linkedin/connect', { method: 'POST', body: '{}' })).url;
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  };
+  const postNow = async (id: string) => {
+    setBusy(id);
+    setErr('');
+    try {
+      await api(`/api/dev/linkedin/publish/${id}`, { method: 'POST', body: '{}' });
+      load();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy('');
+    }
+  };
   useEffect(() => {
     load();
   }, [load]);
@@ -482,7 +507,35 @@ export function LinkedInPage({ api }: { api: Api }) {
   const cal = items.filter((i) => i.scheduledFor && !i.postedUrl).sort((a, b) => Date.parse(a.scheduledFor!) - Date.parse(b.scheduledFor!));
   return (
     <div className="pg">
-      <Card title="New LinkedIn posts" icon={<LinkedinLogo size={20} />} action={<Pill tone="warn">Publishing API not connected</Pill>}>
+      <Card
+        title="LinkedIn account"
+        icon={<LinkedinLogo size={20} />}
+        action={
+          li?.connected ? (
+            <Pill tone="ok">Connected{li.name ? ` · ${li.name}` : ''}</Pill>
+          ) : (
+            <Pill tone="warn">{li?.expired ? 'Sign-in expired' : 'Not connected'}</Pill>
+          )
+        }
+      >
+        {li?.connected ? (
+          <div className="dx-row">
+            <span className="ov-muted">Approved drafts post to this personal profile. Sign-in valid until {when(li.expiresAt)} (LinkedIn asks again every 60 days).</span>
+            <button type="button" className="nc-link" onClick={() => api('/api/dev/linkedin', { method: 'DELETE' }).then(load)}>
+              Disconnect
+            </button>
+          </div>
+        ) : li?.configured ? (
+          <button type="button" className="dx-btn dx-btn--primary" onClick={connectLi}>
+            <LinkedinLogo size={14} /> {li.expired ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+          </button>
+        ) : (
+          <p className="ov-muted">
+            Create a LinkedIn developer app with the self-serve products “Sign In with LinkedIn using OpenID Connect” and “Share on LinkedIn”, add redirect URL <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{li?.redirectUri}</code>, then save LI_CLIENT_ID and LI_CLIENT_SECRET in Settings.
+          </p>
+        )}
+      </Card>
+      <Card title="New LinkedIn posts" icon={<PencilSimpleLine size={20} />}>
         <form
           className="dx-row"
           onSubmit={async (e) => {
@@ -509,7 +562,7 @@ export function LinkedInPage({ api }: { api: Api }) {
             {busy === 'new' ? 'Writing…' : 'Write 3 drafts'}
           </button>
         </form>
-        <p className="ov-muted">Research → draft → your review → schedule → post. LinkedIn’s posting API needs an approved LinkedIn app (Community Management API), so posting is manual for now: “Post on LinkedIn” opens the composer with the text, then paste the post link here to record it.</p>
+        <p className="ov-muted">Research → draft → your review → schedule → post. Approved posts go out with “Post now” or automatically at their scheduled time (checked every hour). Personal profile only: Company Page posting needs LinkedIn’s Community Management API review.</p>
         {err && <p className="dx-err">{err}</p>}
       </Card>
       {cal.length > 0 && (
@@ -556,13 +609,18 @@ export function LinkedInPage({ api }: { api: Api }) {
                   {!i.postedUrl && (
                     <label className="li-sched">
                       <span className="dx-label">Schedule</span>
-                      <input type="date" className="dx-input" value={i.scheduledFor ? i.scheduledFor.slice(0, 10) : ''} onChange={(e) => save(i.id, { scheduledFor: e.target.value || null })} />
+                      <input type="datetime-local" className="dx-input" value={i.scheduledFor ? new Date(Date.parse(i.scheduledFor) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''} onChange={(e) => save(i.id, { scheduledFor: e.target.value ? new Date(e.target.value).toISOString() : null })} />
                     </label>
+                  )}
+                  {i.status === 'ready' && !i.postedUrl && li?.connected && (
+                    <button type="button" className="dx-btn dx-btn--primary" disabled={busy === i.id} onClick={() => postNow(i.id)}>
+                      <PaperPlaneTilt size={14} /> {busy === i.id ? 'Posting…' : 'Post now'}
+                    </button>
                   )}
                   {i.status === 'ready' && !i.postedUrl && (
                     <>
-                      <a className="dx-btn dx-btn--primary" href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(edit[i.id] ?? i.body)}`} target="_blank" rel="noreferrer">
-                        <LinkedinLogo size={14} /> Post on LinkedIn
+                      <a className={`dx-btn ${li?.connected ? '' : 'dx-btn--primary'}`} href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(edit[i.id] ?? i.body)}`} target="_blank" rel="noreferrer">
+                        <LinkedinLogo size={14} /> {li?.connected ? 'Post manually' : 'Post on LinkedIn'}
                       </a>
                       <div className="dx-row">
                         <input className="dx-input" style={{ flex: 1 }} placeholder="Paste the post link" value={posted[i.id] || ''} onChange={(e) => setPosted({ ...posted, [i.id]: e.target.value })} aria-label="Post link" />

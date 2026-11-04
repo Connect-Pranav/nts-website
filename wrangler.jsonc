@@ -16,7 +16,7 @@
   // Free Workers AI allowance: last-resort "cloud brain" when Gemini/Groq keys fail (daily-capped in code).
   "ai": { "binding": "AI" },
   // Agent team autopilot: one cycle every 6 hours (Workers cron triggers are free).
-  "triggers": { "crons": ["17 */6 * * *"] },
+  "triggers": { "crons": ["17 */6 * * *", "5 * * * *"] },
   "vars": {
     "YOUTUBE_HANDLE": "@NikhilsTechStudio"
   },

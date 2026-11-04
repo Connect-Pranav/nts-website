@@ -19,6 +19,9 @@ export const SETTINGS = {
   YT_CLIENT_ID: { label: 'YouTube sign-in: OAuth client ID (Web application) - lets the Community Manager post comment replies', secret: false, check: (v) => /^[\w-]+\.apps\.googleusercontent\.com$/.test(v) || 'should end with .apps.googleusercontent.com' },
   YT_CLIENT_SECRET: { label: 'YouTube sign-in: OAuth client secret', secret: true, check: (v) => /^[\w-]{20,80}$/.test(v) || 'looks incomplete (usually starts with GOCSPX-)' },
   YT_REFRESH_TOKEN: { label: 'YouTube channel sign-in (set by Connect YouTube)', secret: true, internal: true, check: (v) => /^[\w./-]{20,300}$/.test(v) || 'invalid token' },
+  LI_CLIENT_ID: { label: 'LinkedIn app: Client ID (products: Sign In with LinkedIn using OpenID Connect + Share on LinkedIn)', secret: false, check: (v) => /^[A-Za-z0-9]{8,40}$/.test(v) || 'looks wrong (LinkedIn Client IDs are short letters/numbers)' },
+  LI_CLIENT_SECRET: { label: 'LinkedIn app: Primary Client Secret', secret: true, check: (v) => /^[\w.=-]{10,120}$/.test(v) || 'looks incomplete' },
+  LI_ACCESS_TOKEN: { label: 'LinkedIn sign-in (set by Connect LinkedIn)', secret: true, internal: true, check: (v) => /^[\w.=~+/-]{20,1000}$/.test(v) || 'invalid token' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };
@@ -86,7 +89,7 @@ export async function saveSetting(env, body) {
   if (!def) throw new HttpError(400, 'Unknown setting.');
   const value = String(body?.value ?? '').trim();
   if (!value) throw new HttpError(400, 'Enter a value.');
-  if (/\s/.test(value) || value.length > 300) throw new HttpError(400, `${name}: no spaces, max 300 characters.`);
+  if (/\s/.test(value) || value.length > (def.internal ? 1000 : 300)) throw new HttpError(400, `${name}: no spaces, max 300 characters.`);
   const ok = def.check(value);
   if (ok !== true) throw new HttpError(400, `${name} ${ok}.`);
   const store = kv(env);
