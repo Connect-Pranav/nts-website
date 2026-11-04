@@ -365,3 +365,95 @@ export function AnalyticsPanel({ api }: { api: Api }) {
     </div>
   );
 }
+
+// ---------------- Instagram analytics ----------------
+type IgPost = { id: string; caption: string; type: string; url: string; at: string; likes: number | null; comments: number | null; reach: number | null; saves: number | null; shares: number | null; views: number | null };
+type IgReport = { account: { username: string; name: string; followers: number | null; following: number | null; posts: number | null; url: string }; totals: { likes: number; comments: number; saves: number; shares: number; reach: number; engagementRate: number | null }; posts: IgPost[]; fetchedAt: string };
+
+export function InstagramAnalytics({ api }: { api: Api }) {
+  const [r, setR] = useState<IgReport | null>(null);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => {
+    setBusy(true);
+    api<IgReport>('/api/dev/instagram/analytics')
+      .then(
+        (d) => {
+          setR(d);
+          setErr('');
+        },
+        (e: Error) => setErr(e.message),
+      )
+      .finally(() => setBusy(false));
+  }, [api]);
+  useEffect(load, [load]);
+  return (
+    <section className="an" style={{ marginTop: 18 }}>
+      <section className="an-head">
+        <div>
+          <p className="dx-label">Instagram account</p>
+          <h2>{r ? <a href={r.account.url} target="_blank" rel="noreferrer">@{r.account.username}</a> : 'Instagram'}</h2>
+          {r && <p className="dx-dim">Instagram API · fetched {fmt(r.fetchedAt)}</p>}
+        </div>
+        <button type="button" className="dx-btn" onClick={load} disabled={busy}>
+          <ArrowClockwise size={14} /> {busy ? 'Loading…' : 'Refresh'}
+        </button>
+      </section>
+      {err && !r ? (
+        <div className="dx-card an-empty">
+          <p>{/not connected/i.test(err) ? 'Instagram is not connected yet. Social Engagement → Connect Instagram.' : err}</p>
+        </div>
+      ) : r ? (
+        <>
+          <section className="an-grid">
+            <Stat label="Followers" value={n(r.account.followers)} hint={`following ${n(r.account.following)}`} />
+            <Stat label="Posts" value={n(r.account.posts)} />
+            <Stat label="Reach (latest posts)" value={n(r.totals.reach)} hint={`${r.posts.filter((p) => p.reach !== null).length} posts with insights`} />
+            <Stat label="Engagement / reach" value={pct(r.totals.engagementRate)} hint={`${n(r.totals.likes)} likes · ${n(r.totals.comments)} comments · ${n(r.totals.saves)} saves`} />
+          </section>
+          <section className="dx-card an-card">
+            <h3>Latest posts</h3>
+            <div className="an-tw">
+              <table className="an-t">
+                <thead>
+                  <tr>
+                    <th>Post</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th className="num">Views</th>
+                    <th className="num">Reach</th>
+                    <th className="num">Likes</th>
+                    <th className="num">Comments</th>
+                    <th className="num">Saves</th>
+                    <th className="num">Shares</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.posts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="an-t__title">
+                        <a href={p.url} target="_blank" rel="noreferrer">
+                          {p.caption || '(no caption)'}
+                        </a>
+                      </td>
+                      <td>{p.type}</td>
+                      <td>{day(p.at)}</td>
+                      <td className="num">{n(p.views)}</td>
+                      <td className="num">{n(p.reach)}</td>
+                      <td className="num">{n(p.likes)}</td>
+                      <td className="num">{n(p.comments)}</td>
+                      <td className="num">{n(p.saves)}</td>
+                      <td className="num">{n(p.shares)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      ) : (
+        <div className="dx-skel" />
+      )}
+    </section>
+  );
+}

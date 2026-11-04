@@ -78,15 +78,19 @@ export async function publishReply(rawEnv, commentId, text, fetchImpl = fetch) {
   if (c.status === 'escalated' && !text) throw new HttpError(409, 'Escalated comments need your own reply text.');
   const body = String(text ?? c.reply ?? '').trim();
   if (body.length < 2 || body.length > 2000) throw new HttpError(400, 'Reply must be 2 to 2000 characters.');
-  const token = await accessToken(rawEnv, fetchImpl);
-  const r = await fetchImpl('https://www.googleapis.com/youtube/v3/comments?part=snippet', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ snippet: { parentId: commentId, textOriginal: body } }) });
-  const b = await r.json().catch(() => ({}));
-  if (!r.ok) throw new HttpError(502, `YouTube reply failed: ${b?.error?.errors?.[0]?.reason || b?.error?.message || r.status}`);
-  c.replyId = b.id;
+  if (c.platform === 'instagram') {
+    c.replyId = await (await import('./instagram.mjs')).reply(rawEnv, commentId, body, fetchImpl);
+  } else {
+    const token = await accessToken(rawEnv, fetchImpl);
+    const r = await fetchImpl('https://www.googleapis.com/youtube/v3/comments?part=snippet', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify({ snippet: { parentId: commentId, textOriginal: body } }) });
+    const b = await r.json().catch(() => ({}));
+    if (!r.ok) throw new HttpError(502, `YouTube reply failed: ${b?.error?.errors?.[0]?.reason || b?.error?.message || r.status}`);
+    c.replyId = b.id;
+  }
   c.reply = body;
   c.status = 'replied';
   c.repliedAt = nowIso();
   await rawEnv.NTS_KV.put('social/comments', JSON.stringify(list));
-  await ops.log(rawEnv, 'publish', `YouTube reply posted to ${c.author}`);
-  return { replyId: b.id, url: c.url };
+  await ops.log(rawEnv, 'publish', `${c.platform === 'instagram' ? 'Instagram' : 'YouTube'} reply posted to ${c.author}`);
+  return { replyId: c.replyId, url: c.url };
 }

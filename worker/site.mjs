@@ -8,6 +8,7 @@ import * as analytics from './analytics.mjs';
 import { handleMcp } from './mcp.mjs';
 import * as ytOAuth from './youtube.mjs';
 import * as liOAuth from './linkedin.mjs';
+import * as igOAuth from './instagram.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -116,12 +117,19 @@ export default {
   // Cloudflare cron (free): the NTS agent team runs a cycle on autopilot
   async scheduled(event, env, ctx) {
     if (event.cron === '5 * * * *') return ctx.waitUntil(liOAuth.scheduled(env)); // hourly: due LinkedIn posts
-    ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env), liOAuth.scheduled(env)]));
+    ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env), liOAuth.scheduled(env), igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))]));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
     if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
+    if (url.pathname === '/api/ig/callback' && request.method === 'GET') {
+      try {
+        return await igOAuth.callback(env, url);
+      } catch (e) {
+        return json({ error: e.status ? e.message : 'Sign-in failed.' }, e.status || 500);
+      }
+    }
     if (url.pathname === '/api/li/callback' && request.method === 'GET') {
       try {
         return await liOAuth.callback(env, url);

@@ -462,6 +462,12 @@ export function WorkPanel({ api, ready }: { api: Api; ready: boolean }) {
               >
                 <Copy size={15} /> {copied === it.id ? 'Copied' : 'Copy'}
               </button>
+              {it.channel === 'X' && it.status === 'ready' && (
+                <a className="dx-btn dx-btn--primary" href={`https://x.com/intent/post?text=${encodeURIComponent(it.body.split(/\n-{3,}\n/)[0].slice(0, 280))}`} target="_blank" rel="noreferrer" title="Opens the X composer with the first post">
+                  𝕏 Post on X
+                </a>
+              )}
+              {it.channel === 'X' && <span className={`dx-mono ${it.body.split(/\n-{3,}\n/)[0].length > 280 ? 'dx-err' : 'dx-dim'}`}>{it.body.split(/\n-{3,}\n/)[0].length}/280</span>}
               <button type="button" className="dx-btn" onClick={() => downloadPdf(it.title, it.body)}>
                 <FilePdf size={15} /> PDF
               </button>

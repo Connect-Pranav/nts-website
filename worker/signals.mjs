@@ -164,7 +164,7 @@ export async function freshLeads(env, n = 2) {
 
 /** One view for the Signals panel: every source and its status. */
 export async function overview(env) {
-  const [s, brain, an] = await Promise.all([getSignals(env), store.getBrain(env), env.NTS_KV ? env.NTS_KV.get('an/latest', 'json') : null]);
+  const [s, brain, an, ig] = await Promise.all([getSignals(env), store.getBrain(env), env.NTS_KV ? env.NTS_KV.get('an/latest', 'json') : null, env.NTS_KV ? env.NTS_KV.get('ig/meta', 'json') : null]);
   const h = s.health;
   const fresh = s.leads.filter((l) => l.state === 'new').length;
   const stat = (x) => (!x ? 'idle' : x.ok ? 'ok' : 'error');
@@ -178,8 +178,9 @@ export async function overview(env) {
       { key: 'notes', name: 'Owner notes', status: brain.notes.length ? 'ok' : 'idle', detail: `${brain.notes.length} notes in the Brain` },
       { key: 'memory', name: 'Team memory', status: 'ok', detail: `${brain.rules.length} rules · ${brain.feedback.length} learned` },
       { key: 'youtube', name: 'YouTube', status: an ? 'ok' : 'idle', detail: an ? `${an.channel?.handle} · ${an.videos?.length ?? 0} videos · ${an.source}` : 'Open Analytics to fetch the channel.' },
-      { key: 'instagram', name: 'Instagram', status: 'off', detail: 'Not connected: needs an Instagram Graph API token from a Business/Creator account. Agents still draft Reels and captions.' },
+      { key: 'instagram', name: 'Instagram', status: ig ? 'ok' : 'off', detail: ig ? `@${ig.username || 'connected'} · comments and analytics on` : 'Not connected: Social Engagement → Connect Instagram.' },
     ],
     leads: s.leads.slice(0, 40),
+    x: { status: 'manual', detail: 'X posts are drafted by the Social Media Manager and posted with one click through the X composer. The X API itself is paid per post since Feb 2026, so it is not connected.' },
   };
 }

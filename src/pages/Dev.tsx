@@ -1,8 +1,8 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Bell, Brain, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, LockKey, Moon, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
+import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, LockKey, Moon, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
-import { AnalyticsPanel, SignalsPanel } from './DevInsights';
+import { AnalyticsPanel, InstagramAnalytics, SignalsPanel } from './DevInsights';
 import { OverviewPage } from './command/Overview';
 import { BrainPage } from './command/BrainPage';
 import { AgentsPage, ApprovalsPage, DeployPage, LeadsPage, LinkedInPage, MemorySearch, SocialPage, TasksBoard } from './command/Pages';
@@ -56,7 +56,7 @@ const NAV: [Tab, string, typeof Robot][][] = [
   ],
 ];
 const TABS = NAV.flat();
-const OWNER = 'Pranav';
+const OWNER = 'Commander';
 
 export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggleTheme: () => void }) {
   const [arg, setArg] = useState<string | undefined>();
@@ -286,7 +286,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           </button>
           <div className="nc-me">
             <span className="nc-me__av" aria-hidden="true">
-              {OWNER[0]}
+              <Crown size={20} weight="fill" />
             </span>
             <span>
               <b>{OWNER}</b>
@@ -318,7 +318,12 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
         {tab === 'leads' && <LeadsPage api={bound} />}
         {tab === 'linkedin' && <LinkedInPage api={bound} />}
         {tab === 'social' && <SocialPage api={bound} />}
-        {tab === 'analytics' && <AnalyticsPanel api={bound} />}
+        {tab === 'analytics' && (
+          <>
+            <AnalyticsPanel api={bound} />
+            <InstagramAnalytics api={bound} />
+          </>
+        )}
         {tab === 'deploy' && <DeployPage api={bound} />}
         {tab === 'memory' && (
           <>

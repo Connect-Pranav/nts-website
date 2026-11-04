@@ -159,13 +159,18 @@ export const TOOLS = {
       return { ...rest, latestVideos: videos.slice(0, 10) };
     },
   },
+  nts_get_instagram_analytics: {
+    description: 'Instagram professional account numbers: followers, recent posts with likes, comments, reach, saves, shares (needs Instagram connected).',
+    input: {},
+    run: async (env) => (await import('./instagram.mjs')).analytics(env),
+  },
   nts_get_youtube_comments: {
     description: 'Latest YouTube comments on the NTS channel (public read; needs YOUTUBE_API_KEY).',
     input: { max: z.number().int().min(1).max(100).optional() },
     run: async (env, a) => ({ comments: await integ.youtubeComments(env, a.max ?? 30) }),
   },
   nts_analyze_comments: {
-    description: 'Community Manager classifies new YouTube comments (intent, sentiment, language, escalation) and drafts replies for approval.',
+    description: 'Community Manager classifies new YouTube and Instagram comments (intent, sentiment, language, escalation) and drafts replies for approval.',
     input: {},
     run: async (env) => {
       const r = await integ.analyzeComments(env);
@@ -210,6 +215,28 @@ export const TOOLS = {
 
 export const toolNames = Object.keys(TOOLS);
 
+// Human labels for the activity feed; quiet bookkeeping tools are not logged.
+const LABEL = {
+  nts_create_linkedin_post: 'LinkedIn posts drafted',
+  nts_run_content_cycle: 'Team content cycle run',
+  nts_approve_content: 'Content decision applied',
+  nts_scan_leads: 'Leads scanned (HN, Reddit, Mastodon)',
+  nts_draft_lead_reply: 'Lead reply drafted',
+  nts_update_lead: 'Lead stage updated',
+  nts_get_social_analytics: 'YouTube growth report generated',
+  nts_get_instagram_analytics: 'Instagram report generated',
+  nts_get_youtube_comments: 'YouTube comments read',
+  nts_analyze_comments: 'Comments analysed (YouTube / Instagram)',
+  nts_generate_image: 'Image generated',
+  nts_get_deployment_status: 'GitHub deployments checked',
+  nts_run_tests: 'Tests started on GitHub CI',
+  nts_check_site_health: 'Site health checked',
+  nts_save_memory: 'Saved to memory',
+  nts_set_mode: 'Operating mode changed',
+  nts_run_agent: 'Agent deliverable written',
+  nts_create_task: 'Task created',
+};
+
 /** Validate + run a tool; records a task and an activity line. */
 export async function callTool(env, name, args = {}, ctx = {}) {
   const t = TOOLS[name];
@@ -222,11 +249,11 @@ export async function callTool(env, name, args = {}, ctx = {}) {
   try {
     const out = await t.run(env, parsed.data);
     await ops.updateTask(env, task.id, { status: 'completed', output: JSON.stringify(out).slice(0, 6000), ms: Date.now() - started });
-    await ops.log(env, 'tool', `${ctx.agentName ? `${ctx.agentName}: ` : ''}${ctx.title || name} ✓`, { tool: name, via: ctx.via || 'dashboard' });
+    if (LABEL[name]) await ops.log(env, 'tool', `${LABEL[name]}${ctx.agentName && ctx.agentName !== 'NTS Brain' ? ` · ${ctx.agentName}` : ''}`, { tool: name, via: ctx.via || 'dashboard' });
     return { ok: true, task: task.id, result: out };
   } catch (e) {
     await ops.updateTask(env, task.id, { status: 'failed', error: String(e.message || e).slice(0, 500), ms: Date.now() - started });
-    await ops.log(env, 'error', `${ctx.title || name} failed: ${String(e.message || e).slice(0, 140)}`, { tool: name, via: ctx.via || 'dashboard' });
+    await ops.log(env, 'error', `${LABEL[name] || ctx.title || name} failed: ${String(e.message || e).slice(0, 140)}`, { tool: name, via: ctx.via || 'dashboard' });
     throw e;
   }
 }

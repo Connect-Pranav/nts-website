@@ -11,12 +11,12 @@ import { countTokens, log, getOps } from './ops.mjs';
 
 const KEY = 'work';
 const MAX_ITEMS = 150;
-const CHANNELS = ['LinkedIn', 'Instagram', 'YouTube', 'All'];
+const CHANNELS = ['LinkedIn', 'Instagram', 'YouTube', 'X', 'All'];
 
 // What each NTS agent owns (ids match agents/registry.json entries with dev: true)
 export const TEAM = {
   ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'LinkedIn text posts and carousels for Nikhil Kumar: one strong hook line, short lines, a practical takeaway, 3-5 hashtags, one CTA.' },
-  ops_lakshmi_growth: { name: 'Social Media Manager', job: 'Instagram Reels and YouTube Shorts scripts in 3 scenes (hook, value, CTA) with on-screen text, captions with hashtags, YouTube title + description + tags, posting slot.' },
+  ops_lakshmi_growth: { name: 'Social Media Manager', job: 'Instagram Reels and YouTube Shorts scripts in 3 scenes (hook, value, CTA) with on-screen text, captions with hashtags, YouTube title + description + tags, posting slot, and X (Twitter) posts: max 280 characters each, a short thread only when it truly helps (separate tweets with a line "---").' },
   ops_soma_analytics: { name: 'Growth & Analytics', job: 'SEO keywords, what to post next and why, which metric to watch for this piece, one small growth experiment. Never invent numbers; say what to measure instead.' },
 };
 
@@ -29,7 +29,7 @@ Produce 3 to 5 items across the agents (each agent at least once). Every item is
 If FRESH LEADS are given, add one extra item per lead (agent ops_soma_analytics, channel "All") with "lead_id": a short, genuinely helpful public reply that answers the person's actual question first and mentions the studio only if it truly helps.
 Follow the OWNER RULES and the BRAIN strictly, and learn from RECENT OWNER FEEDBACK. Never invent facts, prices, numbers, results or testimonials; use [placeholders].
 Never write bulk or unsolicited DMs, follow-for-follow, giveaway bait or messages with placeholders like [Follower Name].
-Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false,"lead_id":"id or null"}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;
+Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|X|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false,"lead_id":"id or null"}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;
 
 const kv = (env) => {
   if (!env.NTS_KV) throw new HttpError(503, 'Storage is not set up (NTS_KV binding missing).');

@@ -1265,3 +1265,7 @@ body.is-dev {
     grid-template-columns: 1fr;
   }
 }
+.dwork__ch--x {
+  background: rgba(127, 127, 127, 0.18);
+  color: var(--text);
+}

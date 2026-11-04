@@ -19,6 +19,9 @@ export const SETTINGS = {
   YT_CLIENT_ID: { label: 'YouTube sign-in: OAuth client ID (Web application) - lets the Community Manager post comment replies', secret: false, check: (v) => /^[\w-]+\.apps\.googleusercontent\.com$/.test(v) || 'should end with .apps.googleusercontent.com' },
   YT_CLIENT_SECRET: { label: 'YouTube sign-in: OAuth client secret', secret: true, check: (v) => /^[\w-]{20,80}$/.test(v) || 'looks incomplete (usually starts with GOCSPX-)' },
   YT_REFRESH_TOKEN: { label: 'YouTube channel sign-in (set by Connect YouTube)', secret: true, internal: true, check: (v) => /^[\w./-]{20,300}$/.test(v) || 'invalid token' },
+  IG_APP_ID: { label: 'Instagram: Instagram App ID (Meta app → Instagram → API setup with Instagram login → Business login settings)', secret: false, check: (v) => /^\d{6,25}$/.test(v) || 'should be the numeric Instagram App ID' },
+  IG_APP_SECRET: { label: 'Instagram: Instagram App Secret', secret: true, check: (v) => /^[a-f0-9]{16,64}$/i.test(v) || 'looks incomplete' },
+  IG_ACCESS_TOKEN: { label: 'Instagram access token (set by Connect Instagram, or paste a long-lived IGAA… token from the Meta dashboard)', secret: true, check: (v) => /^[\w.-]{40,600}$/.test(v) || 'looks incomplete (starts with IGAA)' },
   LI_CLIENT_ID: { label: 'LinkedIn app: Client ID (products: Sign In with LinkedIn using OpenID Connect + Share on LinkedIn)', secret: false, check: (v) => /^[A-Za-z0-9]{8,40}$/.test(v) || 'looks wrong (LinkedIn Client IDs are short letters/numbers)' },
   LI_CLIENT_SECRET: { label: 'LinkedIn app: Primary Client Secret', secret: true, check: (v) => /^[\w.=-]{10,120}$/.test(v) || 'looks incomplete' },
   LI_ACCESS_TOKEN: { label: 'LinkedIn sign-in (set by Connect LinkedIn)', secret: true, internal: true, check: (v) => /^[\w.=~+/-]{20,1000}$/.test(v) || 'invalid token' },
@@ -89,7 +92,7 @@ export async function saveSetting(env, body) {
   if (!def) throw new HttpError(400, 'Unknown setting.');
   const value = String(body?.value ?? '').trim();
   if (!value) throw new HttpError(400, 'Enter a value.');
-  if (/\s/.test(value) || value.length > (def.internal ? 1000 : 300)) throw new HttpError(400, `${name}: no spaces, max 300 characters.`);
+  if (/\s/.test(value) || value.length > (def.internal || name === 'IG_ACCESS_TOKEN' ? 1000 : 300)) throw new HttpError(400, `${name}: no spaces, max 300 characters.`);
   const ok = def.check(value);
   if (ok !== true) throw new HttpError(400, `${name} ${ok}.`);
   const store = kv(env);

@@ -29,7 +29,7 @@ export const AGENTS = [
     code: 'LAKSHMI',
     dept: 'content',
     covers: ['Campaign', 'Creative Director', 'Social Publishing'],
-    job: 'Instagram Reels and YouTube Shorts scripts (hook, value, CTA), captions, hashtags, YouTube titles/descriptions/tags, content calendar and visual briefs (with image generation).',
+    job: 'Instagram Reels and YouTube Shorts scripts (hook, value, CTA), captions, hashtags, YouTube titles/descriptions/tags, X (Twitter) posts and short threads, content calendar and visual briefs (with image generation).',
     tools: ['nts_run_content_cycle', 'nts_generate_image', 'nts_run_agent', 'nts_search_memory'],
     approval: ['publishing'],
   },
@@ -40,7 +40,7 @@ export const AGENTS = [
     dept: 'growth',
     covers: ['Growth Manager', 'SEO', 'Analytics', 'Research', 'Competitor Intelligence'],
     job: 'YouTube and channel analytics, what is working and what to post next, SEO keywords, growth experiments and market research. Uses only real numbers; says what to measure when data is missing.',
-    tools: ['nts_get_social_analytics', 'nts_run_agent', 'nts_search_memory'],
+    tools: ['nts_get_social_analytics', 'nts_get_instagram_analytics', 'nts_run_agent', 'nts_search_memory'],
     approval: [],
   },
   {

@@ -655,9 +655,11 @@ export function SocialPage({ api }: { api: Api }) {
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [yt, setYt] = useState<{ configured: boolean; connected: boolean; redirectUri: string; channel: { title: string } | null } | null>(null);
   const [posting, setPosting] = useState('');
+  const [ig, setIg] = useState<{ configured: boolean; connected: boolean; username: string | null; expiresAt: string | null; redirectUri: string } | null>(null);
   const load = useCallback(() => {
     api<{ comments: Comment[]; youtube: boolean; instagram: boolean }>('/api/dev/social').then(setD, (e: Error) => setErr(e.message));
     api<{ configured: boolean; connected: boolean; redirectUri: string; channel: { title: string } | null }>('/api/dev/youtube').then(setYt, () => {});
+    api<{ configured: boolean; connected: boolean; username: string | null; expiresAt: string | null; redirectUri: string }>('/api/dev/instagram').then(setIg, () => {});
   }, [api]);
   useEffect(() => {
     load();
@@ -733,15 +735,45 @@ export function SocialPage({ api }: { api: Api }) {
             </li>
           )}
           <li>
-            <InstagramLogo size={22} /> Instagram: <Pill tone={d.instagram ? 'ok' : 'warn'}>{d.instagram ? 'connected' : 'not connected (needs Instagram Graph API token from a Business/Creator account)'}</Pill>
+            <InstagramLogo size={22} /> Instagram · comments, replies & analytics:{' '}
+            {ig?.connected ? (
+              <>
+                <Pill tone="ok">connected{ig.username ? ` as @${ig.username}` : ''}</Pill>
+                <button type="button" className="nc-link" onClick={() => api('/api/dev/instagram', { method: 'DELETE' }).then(load)}>
+                  Disconnect
+                </button>
+              </>
+            ) : ig?.configured ? (
+              <button
+                type="button"
+                className="dx-btn dx-btn--primary"
+                onClick={async () => {
+                  setErr('');
+                  try {
+                    window.location.href = (await api<{ url: string }>('/api/dev/instagram/connect', { method: 'POST', body: '{}' })).url;
+                  } catch (e) {
+                    setErr((e as Error).message);
+                  }
+                }}
+              >
+                <InstagramLogo size={14} /> Connect Instagram
+              </button>
+            ) : (
+              <Pill tone="warn">add IG_APP_ID + IG_APP_SECRET in Settings (or paste IG_ACCESS_TOKEN)</Pill>
+            )}
           </li>
+          {ig && !ig.connected && (
+            <li className="ov-muted">
+              Meta app → Instagram → API setup with Instagram login → Business login settings → OAuth redirect URI: <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{ig.redirectUri}</code>
+            </li>
+          )}
           <li className="ov-muted">Mode: approval. Every reply is drafted and checked, and is posted only when you press “Approve & post reply” (or post it yourself). Legal threats, serious complaints, personal data, security and harassment are always escalated, never auto-answered.</li>
         </ul>
         <div className="dx-row">
           <button
             type="button"
             className="dx-btn dx-btn--primary"
-            disabled={busy || !d.youtube}
+            disabled={busy || (!d.youtube && !d.instagram)}
             onClick={async () => {
               setBusy(true);
               setErr('');
@@ -769,6 +801,7 @@ export function SocialPage({ api }: { api: Api }) {
         {shown.map((c) => (
           <li key={c.id} className="nc-card so-c">
             <header className="dx-row">
+              {(c as Comment & { platform?: string }).platform === 'instagram' ? <InstagramLogo size={18} /> : <YoutubeLogo size={18} weight="fill" />}
               <b>{c.author}</b>
               <Pill tone={c.sentiment === 'positive' ? 'ok' : c.sentiment === 'negative' ? 'bad' : 'idle'}>{c.sentiment}</Pill>
               <Pill tone="idle">{c.intent}</Pill>
@@ -783,7 +816,7 @@ export function SocialPage({ api }: { api: Api }) {
               <>
                 <textarea className="dx-input" rows={2} value={edit[c.id] ?? c.reply} onChange={(e) => setEdit({ ...edit, [c.id]: e.target.value })} aria-label="Reply" />
                 <div className="dx-row">
-                  {yt?.connected && c.status !== 'replied' && (
+                  {((c as Comment & { platform?: string }).platform === 'instagram' ? ig?.connected : yt?.connected) && c.status !== 'replied' && (
                     <button type="button" className="dx-btn dx-btn--primary" disabled={posting === c.id} onClick={() => publish(c)}>
                       <PaperPlaneTilt size={14} /> {posting === c.id ? 'Posting…' : 'Approve & post reply'}
                     </button>
@@ -811,7 +844,7 @@ export function SocialPage({ api }: { api: Api }) {
             )}
           </li>
         ))}
-        {!shown.length && <Empty>{d.youtube ? 'No comments in this view. Fetch new comments above.' : 'Add a YOUTUBE_API_KEY in Settings to read channel comments.'}</Empty>}
+        {!shown.length && <Empty>{d.youtube || d.instagram ? 'No comments in this view. Fetch new comments above.' : 'Connect YouTube (API key) or Instagram to read comments.'}</Empty>}
       </ul>
     </div>
   );

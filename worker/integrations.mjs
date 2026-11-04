@@ -82,17 +82,23 @@ const ESCALATE = 'legal threat, serious complaint, personal information, securit
 
 /** Community Manager: classify each new comment and draft a reply (stored; never published here). */
 export async function analyzeComments(rawEnv, fetchImpl = fetch) {
-  const list = await youtubeComments(rawEnv, 30, fetchImpl);
+  const env0 = await store.withSettings(rawEnv);
+  const list = [];
+  const errs = [];
+  if (env0.YOUTUBE_API_KEY) list.push(...(await youtubeComments(rawEnv, 30, fetchImpl).catch((e) => (errs.push(e.message), []))));
+  if (env0.IG_ACCESS_TOKEN) list.push(...(await (await import('./instagram.mjs')).comments(rawEnv, 30, fetchImpl).catch((e) => (errs.push(e.message), []))));
+  if (!env0.YOUTUBE_API_KEY && !env0.IG_ACCESS_TOKEN) throw new HttpError(409, 'Connect YouTube (YOUTUBE_API_KEY) or Instagram first.');
+  if (!list.length && errs.length) throw new HttpError(502, errs.join(' | '));
   const kv = rawEnv.NTS_KV;
   const known = (await kv.get('social/comments', 'json')) || [];
   const seen = new Set(known.map((c) => c.id));
-  const fresh = list.filter((c) => !seen.has(c.id)).slice(0, 12);
+  const fresh = list.filter((c) => !seen.has(c.id)).slice(0, 16);
   if (!fresh.length) return { analysed: 0, comments: known.slice(0, 60) };
   const env = await store.withSettings(rawEnv);
   const system = `${await store.brainContext(rawEnv)}
 
-You are the NTS Community Manager. For each YouTube comment: detect intent (question, appreciation, feedback, complaint, enquiry, spam), sentiment (positive, neutral, negative), language (English, Hindi, Hinglish), and whether it must be escalated to the owner (${ESCALATE}). Draft a short, warm, natural reply in the commenter's language (1-2 sentences, never generic or repeated, no links unless needed, no promises or prices). Spam gets no reply.`;
-  const prompt = `COMMENTS:\n${fresh.map((c) => `- ${c.id} | ${c.author}: ${c.text}`).join('\n')}\n\nReturn JSON: {"items":[{"id":"comment id","intent":"...","sentiment":"positive|neutral|negative","language":"...","escalate":true|false,"reason":"short","reply":"reply text or empty for spam"}]}`;
+You are the NTS Community Manager. For each YouTube or Instagram comment (POST gives the post it is on): detect intent (question, appreciation, feedback, complaint, enquiry, spam), sentiment (positive, neutral, negative), language (English, Hindi, Hinglish), and whether it must be escalated to the owner (${ESCALATE}). Draft a short, warm, natural reply in the commenter's language (1-2 sentences, never generic or repeated, no links unless needed, no promises or prices). Spam gets no reply.`;
+  const prompt = `COMMENTS:\n${fresh.map((c) => `- ${c.id} | ${c.platform || 'youtube'} | ${c.author}: ${c.text}${c.post ? ` | POST: ${c.post.slice(0, 120)}` : ''}`).join('\n')}\n\nReturn JSON: {"items":[{"id":"comment id","intent":"...","sentiment":"positive|neutral|negative","language":"...","escalate":true|false,"reason":"short","reply":"reply text or empty for spam"}]}`;
   const r = await generate(env, { system, prompt, json: true, maxTokens: 2500 });
   const out = parseJson(r.text);
   const by = new Map((out.items || []).map((x) => [x.id, x]));

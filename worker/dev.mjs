@@ -14,6 +14,7 @@ import * as brain from './brain.mjs';
 import * as integ from './integrations.mjs';
 import * as yt from './youtube.mjs';
 import * as li from './linkedin.mjs';
+import * as ig from './instagram.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -127,7 +128,7 @@ export async function handle(rawEnv, request, url, ctx) {
     return json(await callTool(rawEnv, b.name, b.args || {}, { title: b.title || b.name, via: 'dashboard' }));
   }
   if (path === '/api/dev/social' && method === 'GET') return json({ comments: (await rawEnv.NTS_KV.get('social/comments', 'json')) || [], youtube: Boolean(env.YOUTUBE_API_KEY), instagram: Boolean(env.IG_ACCESS_TOKEN) });
-  const sc = path.match(/^\/api\/dev\/social\/([\w-]{6,80})$/);
+  const sc = path.match(/^\/api\/dev\/social\/([\w-]{2,80})$/);
   if (sc && method === 'POST') {
     const b = await body(request);
     const list = (await rawEnv.NTS_KV.get('social/comments', 'json')) || [];
@@ -139,6 +140,10 @@ export async function handle(rawEnv, request, url, ctx) {
     if (b?.status) await ops.log(rawEnv, 'social', `Comment by ${c.author}: ${b.status}`);
     return json({ comment: c });
   }
+  if (path === '/api/dev/instagram' && method === 'GET') return json(await ig.status(rawEnv, url.origin));
+  if (path === '/api/dev/instagram/connect' && method === 'POST') return json(await ig.start(rawEnv, url.origin));
+  if (path === '/api/dev/instagram' && method === 'DELETE') return json(await ig.disconnect(rawEnv));
+  if (path === '/api/dev/instagram/analytics' && method === 'GET') return json(await ig.analytics(rawEnv));
   if (path === '/api/dev/linkedin' && method === 'GET') return json(await li.status(rawEnv, url.origin));
   if (path === '/api/dev/linkedin/connect' && method === 'POST') return json(await li.start(rawEnv, url.origin));
   if (path === '/api/dev/linkedin' && method === 'DELETE') return json(await li.disconnect(rawEnv));
@@ -147,7 +152,7 @@ export async function handle(rawEnv, request, url, ctx) {
   if (path === '/api/dev/youtube' && method === 'GET') return json(await yt.status(rawEnv, url.origin));
   if (path === '/api/dev/youtube/connect' && method === 'POST') return json(await yt.start(rawEnv, url.origin));
   if (path === '/api/dev/youtube' && method === 'DELETE') return json(await yt.disconnect(rawEnv));
-  const pub = path.match(/^\/api\/dev\/social\/([\w-]{6,80})\/publish$/);
+  const pub = path.match(/^\/api\/dev\/social\/([\w-]{2,80})\/publish$/);
   if (pub && method === 'POST') return json(await yt.publishReply(rawEnv, pub[1], (await body(request))?.reply));
   if (path === '/api/dev/leads' && method === 'POST') return json(await signals.addLead(rawEnv, await body(request)));
 

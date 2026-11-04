@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop } from '@phosphor-icons/react';
+import { InstagramLogo, XLogo, WarningCircle, MagnifyingGlass, ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop } from '@phosphor-icons/react';
 import type { Api, Go, Overview as OV, Ops } from './shared';
 import { Card, Pill, ago, toneOf } from './shared';
 
@@ -13,6 +13,20 @@ const AGENT_ICON: Record<string, JSX.Element> = {
   ops_community: <YoutubeLogo size={22} />,
   ops_devops: <Code size={22} />,
 };
+
+function eventIcon(e: { kind: string; text: string }) {
+  const t = e.text.toLowerCase();
+  if (e.kind === 'error') return ['#f07878', <WarningCircle size={18} weight="fill" />] as const;
+  if (/linkedin/.test(t)) return ['#0a66c2', <LinkedinLogo size={18} weight="fill" />] as const;
+  if (/instagram/.test(t)) return ['#d62976', <InstagramLogo size={18} weight="bold" />] as const;
+  if (/youtube|comment/.test(t)) return ['#e00000', <YoutubeLogo size={18} weight="fill" />] as const;
+  if (/\bx\b|twitter|tweet/.test(t)) return ['#111', <XLogo size={18} weight="bold" />] as const;
+  if (/deploy|github|test|health|ci\b|commit/.test(t)) return ['#2b4d55', <Code size={18} weight="bold" />] as const;
+  if (/lead|scan|signal/.test(t)) return ['#7c5cff', <MagnifyingGlass size={18} weight="bold" />] as const;
+  if (e.kind === 'approval') return ['#b8892f', <ShieldCheck size={18} weight="fill" />] as const;
+  if (/analytic|growth|cycle|report|soma/.test(t) || e.kind === 'cycle') return ['#1f7a52', <ChartBar size={18} weight="fill" />] as const;
+  return ['#0f6f75', <Brain size={18} />] as const;
+}
 
 function greeting() {
   const h = Number(new Date().toLocaleString('en-IN', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' }));
@@ -305,7 +319,9 @@ export function OverviewPage({ api, go, owner }: { api: Api; go: Go; owner: stri
           <ul className="ov-act">
             {d.activity.slice(0, 7).map((e) => (
               <li key={e.id}>
-                <span className={`ov-act__dot ov-act__dot--${e.kind}`} />
+                <span className="ov-act__ic" style={{ background: eventIcon(e)[0] }}>
+                  {eventIcon(e)[1]}
+                </span>
                 <span>{e.text}</span>
                 <small>{ago(e.at)}</small>
               </li>
