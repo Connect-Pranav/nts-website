@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { List, MagnifyingGlass, Moon, Sun, X } from '@phosphor-icons/react';
+import { Code, List, MagnifyingGlass, Moon, Sun, X } from '@phosphor-icons/react';
 import { NAV, SITE } from '../config';
 import { onLinkClick } from '../lib/router';
 import { GlassButton } from './GlassButton';
@@ -69,6 +69,9 @@ export function Header({ path, theme, onToggleTheme, onOpenSearch }: Props) {
           <button className="hdr__icon" type="button" onClick={onOpenSearch} aria-label="Search the site">
             <MagnifyingGlass size={22} weight="regular" />
           </button>
+          <a className={`hdr__icon hdr__dev ${path === '/dev' ? 'is-on' : ''}`} href="/dev" onClick={onLinkClick} aria-label="Dev Mode" title="Dev Mode">
+            <Code size={22} />
+          </a>
           <button className="hdr__icon" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
             {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
           </button>
@@ -95,6 +98,9 @@ export function Header({ path, theme, onToggleTheme, onOpenSearch }: Props) {
           <GlassButton href="/contact" arrow>
             Get Started
           </GlassButton>
+          <a className="hdr__sheetdev" href="/dev" onClick={onLinkClick}>
+            <Code size={18} aria-hidden="true" /> Dev Mode
+          </a>
         </nav>
       </div>
     </header>

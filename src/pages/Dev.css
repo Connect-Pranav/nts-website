@@ -247,3 +247,228 @@
 .dev__grid {
   margin-top: 28px;
 }
+.dev__tabs {
+  margin-top: 26px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+}
+.dev__tabs button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: 600 15px/1 var(--font-display);
+}
+.dev__tabs button.on {
+  background: linear-gradient(100deg, var(--btn-a), var(--btn-b));
+  color: var(--on-accent);
+}
+.dev__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e5484d;
+}
+.dev__skel {
+  margin-top: 28px;
+  height: 240px;
+  border-radius: 20px;
+  background: var(--glass);
+}
+/* Settings */
+.dset {
+  margin-top: 28px;
+}
+.dset__list {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.dset__row {
+  border-radius: 18px;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto;
+  gap: 16px;
+  align-items: center;
+}
+.dset__name {
+  font: 600 15px/1.2 ui-monospace, Menlo, monospace;
+}
+.dset__label {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+.dset__status {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.dset__status.on {
+  color: var(--mint);
+}
+.dset__form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dset__form input,
+.dbrain input,
+.dbrain textarea {
+  flex: 1;
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  color: var(--text);
+  padding: 11px 14px;
+  font: 14.5px/1.5 var(--font-body);
+}
+.dset__form input:focus-visible,
+.dbrain input:focus-visible,
+.dbrain textarea:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
+}
+.dset__icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  cursor: pointer;
+}
+.dset__msg {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+}
+.dset__msg.ok {
+  color: var(--mint);
+}
+.dset__msg.no {
+  color: #ff9b8f;
+}
+[data-theme='light'] .dset__msg.no {
+  color: #b3261e;
+}
+@media (max-width: 900px) {
+  .dset__row {
+    grid-template-columns: 1fr;
+  }
+}
+/* Brain */
+.dbrain {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.dbrain__col {
+  border-radius: 22px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dbrain__col h2 {
+  font: 700 20px/1.2 var(--font-display);
+}
+.dbrain__hint {
+  font-size: 14px;
+  color: var(--text-2);
+}
+.dbrain textarea {
+  width: 100%;
+  resize: vertical;
+}
+.dbrain__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.dbrain__count {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dbrain__add {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.dbrain__add input,
+.dbrain__add textarea {
+  width: 100%;
+}
+.dbrain__notes {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 520px;
+  overflow: auto;
+}
+.dbrain__notes li {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--glass-highlight);
+}
+.dbrain__nt {
+  font: 600 14.5px/1.3 var(--font-display);
+}
+.dbrain__nx {
+  font-size: 13.5px;
+  color: var(--text-2);
+  margin-top: 4px;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dbrain__nm {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.dbrain__empty {
+  color: var(--muted);
+  font-size: 14px;
+  background: transparent !important;
+}
+.dbrain__ok {
+  grid-column: 1 / -1;
+  color: var(--mint);
+  font-size: 14px;
+}
+@media (max-width: 900px) {
+  .dbrain {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3,6 +3,7 @@
 // Cached for 6 hours at the edge, so the daily API quota is barely touched.
 import { json } from './util.mjs';
 import * as dev from './dev.mjs';
+import { withSettings } from './store.mjs';
 
 const CACHE_SECONDS = 6 * 3600;
 
@@ -108,8 +109,8 @@ async function cached(url, ctx, compute) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, () => latestVideo(env));
-    if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, () => channelVideos(env));
+    if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
+    if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
     if (url.pathname.startsWith('/api/dev/')) {
       try {
         return await dev.handle(env, request, url);

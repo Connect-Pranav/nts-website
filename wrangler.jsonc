@@ -1,7 +1,7 @@
 {
   // NTS public site on Cloudflare Workers (free tier): static assets + /api/public/* (worker/site.mjs).
   // Secret (set with `npx wrangler secret put YOUTUBE_API_KEY`): YOUTUBE_API_KEY. Never commit it.
-  "name": "nts",
+  "name": "nts-website",
   "main": "worker/site.mjs",
   "compatibility_date": "2026-10-01",
   "keep_vars": true,
@@ -11,6 +11,8 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  // Dev Mode storage (settings + Brain). No id: Wrangler creates the namespace on first deploy.
+  "kv_namespaces": [{ "binding": "NTS_KV" }],
   "vars": {
     "YOUTUBE_HANDLE": "@NikhilsTechStudio"
   },

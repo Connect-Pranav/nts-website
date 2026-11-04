@@ -4,7 +4,7 @@
 import NTS from '../agents/registry.json' with { type: 'json' };
 import { HttpError, json, safeEqual, clientIp } from './util.mjs';
 import { generate, engineStatus } from './providers.mjs';
-import { BRAND } from './agents.mjs';
+import * as store from './store.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
 const fails = new Map();
@@ -51,31 +51,63 @@ export function catalogue() {
     }));
 }
 
-export async function handle(env, request, url) {
-  authorize(env, request);
-  if (url.pathname === '/api/dev/session' && request.method === 'POST') {
-    return json({ ok: true, engines: engineStatus(env), agents: catalogue().length });
+async function body(request) {
+  try {
+    return await request.json();
+  } catch {
+    throw new HttpError(400, 'Body must be JSON.');
   }
-  if (url.pathname === '/api/dev/agents' && request.method === 'GET') {
-    return json({ agents: catalogue(), engines: engineStatus(env) });
+}
+
+export async function handle(rawEnv, request, url) {
+  authorize(rawEnv, request);
+  const env = await store.withSettings(rawEnv);
+  const path = url.pathname;
+  const method = request.method;
+
+  if (path === '/api/dev/session' && method === 'POST') return json({ ok: true, engines: engineStatus(env), agents: catalogue().length });
+  if (path === '/api/dev/agents' && method === 'GET') return json({ agents: catalogue(), engines: engineStatus(env) });
+
+  // Settings
+  if (path === '/api/dev/settings' && method === 'GET') return json({ settings: await store.listSettings(rawEnv), engines: engineStatus(env) });
+  if (path === '/api/dev/settings' && method === 'POST') {
+    const settings = await store.saveSetting(rawEnv, await body(request));
+    return json({ settings, engines: engineStatus(await store.withSettings(rawEnv)) });
   }
-  const m = url.pathname.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);
-  if (m && request.method === 'POST') {
+  const del = path.match(/^\/api\/dev\/settings\/([A-Z_]{3,40})$/);
+  if (del && method === 'DELETE') {
+    const settings = await store.deleteSetting(rawEnv, del[1]);
+    return json({ settings, engines: engineStatus(await store.withSettings(rawEnv)) });
+  }
+  if (path === '/api/dev/settings/test' && method === 'POST') {
+    const { engine } = await body(request);
+    if (!['gemini', 'groq'].includes(engine)) throw new HttpError(400, 'engine must be gemini or groq.');
+    if (!engineStatus(env)[engine].configured) throw new HttpError(409, `${engine} key is not set.`);
+    const r = await generate(env, { system: 'Reply with exactly: OK', prompt: 'Connection test', maxTokens: 20, only: engine });
+    return json({ ok: true, engine: r.engine, model: r.model, latencyMs: r.latencyMs, reply: r.text.slice(0, 40) });
+  }
+
+  // Brain
+  if (path === '/api/dev/brain' && method === 'GET') return json(await store.getBrain(rawEnv));
+  if (path === '/api/dev/brain' && method === 'PUT') return json(await store.setKnowledge(rawEnv, await body(request)));
+  if (path === '/api/dev/brain/reset' && method === 'POST') return json(await store.resetKnowledge(rawEnv));
+  if (path === '/api/dev/brain/notes' && method === 'POST') return json(await store.addNote(rawEnv, await body(request)));
+  const dn = path.match(/^\/api\/dev\/brain\/notes\/(note_[a-z0-9]{10,40})$/);
+  if (dn && method === 'DELETE') return json(await store.deleteNote(rawEnv, dn[1]));
+
+  // Run an agent (with the Brain)
+  const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);
+  if (m && method === 'POST') {
     const agent = catalogue().find((a) => a.id === m[1]);
     if (!agent) throw new HttpError(404, 'Unknown agent.');
     if (bump(runs, clientIp(request), 60_000) > 20) throw new HttpError(429, 'Slow down: 20 runs a minute in dev mode.');
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      throw new HttpError(400, 'Body must be JSON: {"task": "..."}');
-    }
-    const task = typeof body?.task === 'string' ? body.task.trim() : '';
+    const b = await body(request);
+    const task = typeof b?.task === 'string' ? b.task.trim() : '';
     if (task.length < 3 || task.length > 4000) throw new HttpError(400, 'Task must be 3 to 4000 characters.');
-    const system = `${BRAND}
+    const system = `${await store.brainContext(rawEnv)}
 
 You are the ${agent.name} for NIKHILs TECH STUDIO (agent id ${agent.id}). Channels: LinkedIn (Nikhil Kumar), Instagram @nikhil_techstudio, YouTube @NikhilsTechStudio.
-Your mission: ${agent.mission}
+Your job: ${agent.mission}
 Rules: produce the deliverable as text only. You cannot publish, post, spend money, deploy or contact anyone. Flag anything that would need human approval${agent.approvalRequired.length ? ` (${agent.approvalRequired.join(', ')})` : ''}. Separate facts from assumptions; never invent numbers or sources.`;
     const r = await generate(env, { system, prompt: task, maxTokens: 2500 });
     return json({ agent: agent.id, text: r.text, engine: r.engine, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, latencyMs: r.latencyMs, costUsd: r.costUsd });

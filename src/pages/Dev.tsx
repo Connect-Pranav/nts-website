@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { LockKey, LockKeyOpen, Robot, X } from '@phosphor-icons/react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Brain, GearSix, LockKey, LockKeyOpen, Robot, X } from '@phosphor-icons/react';
+import { BrainPanel, SettingsPanel } from './DevPanels';
 import { GlassButton } from '../components/GlassButton';
 import './Dev.css';
 
@@ -41,6 +42,9 @@ export function Dev() {
     }
   });
   const [open, setOpen] = useState<Agent | null>(null);
+  const [tab, setTab] = useState<'agents' | 'brain' | 'settings'>('agents');
+  const bound = useCallback(<T,>(path: string, init?: RequestInit) => api<T>(token, path, init), [token]);
+  const onEngines = useCallback((e: Engines) => setEngines(e), []);
 
   useEffect(() => {
     const m = document.createElement('meta');
@@ -161,7 +165,7 @@ export function Dev() {
                   .filter(([, e]) => e.configured)
                   .map(([k, e]) => `${k} (${e.model})`)
                   .join(', ')}`
-              : 'No AI engine key set: add GEMINI_API_KEY or GROQ_API_KEY to run agents'}
+              : 'No AI engine key yet: add one in Settings'}
           </p>
           <GlassButton variant="secondary" size="sm" onClick={lock} icon={<LockKeyOpen size={18} />}>
             Lock
@@ -169,7 +173,23 @@ export function Dev() {
         </div>
       </header>
 
-      {teams.length > 1 && (
+      <div className="dev__tabs" role="tablist" aria-label="Dev Mode sections">
+        {([
+          ['agents', 'Agents', Robot],
+          ['brain', 'Brain', Brain],
+          ['settings', 'Settings', GearSix],
+        ] as const).map(([k, label, I]) => (
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+            <I size={18} aria-hidden="true" /> {label}
+            {k === 'settings' && !engineReady && <span className="dev__dot" aria-label="needs setup" />}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
+      {tab === 'brain' && <BrainPanel api={bound} />}
+
+      {tab === 'agents' && teams.length > 1 && (
       <div className="dev__filters" role="toolbar" aria-label="Filter by team">
         <button type="button" className={team === 'all' ? 'on' : ''} onClick={() => setTeam('all')}>
           All ({agents.length})
@@ -185,6 +205,7 @@ export function Dev() {
       </div>
       )}
 
+      {tab === 'agents' && (
       <ul className="dev__grid">
         {shown.map((a) => {
           const enabled = !off.includes(a.id);
@@ -215,6 +236,7 @@ export function Dev() {
           );
         })}
       </ul>
+      )}
       {open && <RunPanel token={token} agent={open} onClose={() => setOpen(null)} />}
     </section>
   );
@@ -225,6 +247,17 @@ function RunPanel({ token, agent, onClose }: { token: string; agent: Agent; onCl
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<RunResult | null>(null);
   const [err, setErr] = useState('');
+  const [saved, setSaved] = useState('');
+
+  async function saveToBrain() {
+    if (!res) return;
+    try {
+      await api(token, '/api/dev/brain/notes', { method: 'POST', body: JSON.stringify({ title: `${agent.name}: ${task.slice(0, 80)}`, text: res.text.slice(0, 4000), source: agent.name }) });
+      setSaved('Saved to Brain');
+    } catch (x) {
+      setSaved((x as Error).message);
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -237,6 +270,7 @@ function RunPanel({ token, agent, onClose }: { token: string; agent: Agent; onCl
     setBusy(true);
     setErr('');
     setRes(null);
+    setSaved('');
     try {
       setRes(await api<RunResult>(token, `/api/dev/agents/${agent.id}/run`, { method: 'POST', body: JSON.stringify({ task }) }));
     } catch (x) {
@@ -273,6 +307,15 @@ function RunPanel({ token, agent, onClose }: { token: string; agent: Agent; onCl
               {res.engine} · {res.model} · {res.inputTokens ?? '?'} in / {res.outputTokens ?? '?'} out tokens · {(res.latencyMs / 1000).toFixed(1)}s
             </p>
             <pre>{res.text}</pre>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
+              <GlassButton size="sm" variant="secondary" onClick={() => navigator.clipboard?.writeText(res.text)}>
+                Copy
+              </GlassButton>
+              <GlassButton size="sm" variant="secondary" icon={<Brain size={18} />} onClick={saveToBrain}>
+                Save to Brain
+              </GlassButton>
+              {saved && <span className="dev__meta">{saved}</span>}
+            </div>
           </div>
         )}
       </form>

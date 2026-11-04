@@ -28,7 +28,9 @@ npx wrangler deploy   # deploy (after `npx wrangler login`)
 `docs/AUDIT.md`, `docs/AGENT_MAPPING.md`, `migrations/0001_init.sql` (database schema for the next phase).
 
 ## Dev Mode (`/dev`)
-Token-protected agent console, hidden from navigation and search engines.
+Token-protected agent console. Open it from the `</>` icon in the header (inside the menu on phones); search engines are told not to index it.
+- Tabs: **Agents** (run a task, Copy, Save to Brain), **Brain** (company knowledge + saved notes that every agent reads), **Settings** (add API keys from the site, encrypted in KV with a key derived from `DEV_TOKEN`; Cloudflare secrets take priority; Test button per engine).
+- Storage: KV namespace `NTS_KV`, created automatically on deploy (free tier).
 - Set the secret: `npx wrangler secret put DEV_TOKEN` (8+ characters).
 - Open `/dev`, enter the token. It is kept in that browser tab only (sessionStorage).
 - Only the agents NTS needs (registry entries with `dev: true`): **LinkedIn Content Writer** (MAYA-OPS), **Social Media Manager** for LinkedIn, Instagram and YouTube (LAKSHMI-OPS), **Growth & Analytics** (SOMA). GANESHA orchestrates the content workflow behind the scenes. No Sunverse, LittleLoop or Foliocraft agents.

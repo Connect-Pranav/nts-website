@@ -18,8 +18,8 @@ const price = (v) => {
 };
 
 /** Call the first configured engine; fall back to the next on failure. */
-export async function generate(env, { system, prompt, maxTokens = 2048, json = false }, fetchImpl = fetch) {
-  const order = ENGINES.filter((e) => engineStatus(env)[e].configured);
+export async function generate(env, { system, prompt, maxTokens = 2048, json = false, only = null }, fetchImpl = fetch) {
+  const order = ENGINES.filter((e) => engineStatus(env)[e].configured && (!only || e === only));
   if (!order.length) throw new HttpError(503, 'No AI engine configured. Add a free GEMINI_API_KEY (aistudio.google.com) or GROQ_API_KEY (console.groq.com).');
   let lastErr;
   for (const engine of order) {
