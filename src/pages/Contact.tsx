@@ -1,6 +1,6 @@
-import { InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
+import { InstagramLogo, LinkedinLogo } from '@phosphor-icons/react';
 import { GlassButton } from '../components/GlassButton';
-import { AUDIENCES, INSTITUTIONS } from '../content/blueprint';
+import { INSTITUTIONS } from '../content/blueprint';
 import { SITE } from '../config';
 import { Cards, PageHero, Section } from './parts';
 
@@ -15,14 +15,6 @@ export function Contact() {
           DM on Instagram
         </GlassButton>
       </PageHero>
-      <Section id="learners" title={<>For <em>learners</em></>} lead="Start with the free lessons, then practise with us every day.">
-        <Cards items={AUDIENCES.slice(0, 3).map((a) => ({ title: a.title, text: a.need }))} cols={3} />
-        <div style={{ marginTop: 18 }}>
-          <GlassButton href={SITE.social.youtube} external variant="secondary" icon={<YoutubeLogo size={20} />}>
-            Start free on YouTube
-          </GlassButton>
-        </div>
-      </Section>
       <Section id="partners" title={<>Partner with <em>us</em></>} lead="Institutions, companies and creators we work with.">
         <Cards items={INSTITUTIONS.map((i) => ({ title: i.title, text: i.offer }))} cols={3} />
       </Section>

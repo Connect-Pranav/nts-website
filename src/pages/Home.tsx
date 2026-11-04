@@ -11,7 +11,7 @@ export function Home({ onWatchIntro }: { onWatchIntro: () => void }) {
       <FeaturePillars />
       <ExploreCards />
       <FounderNote />
-      <Foundation compact />
+      <Foundation />
     </>
   );
 }

@@ -35,13 +35,6 @@ export const VALUES = [
   { title: 'Build in public', text: 'We share the journey as we build it.' },
 ];
 
-export const WHY_US = [
-  { title: 'Practice over lectures', text: 'Others teach. We make people do something every day.' },
-  { title: 'Visible proof', text: 'Scores, streaks and certificates recruiters and colleges can see.' },
-  { title: 'Language and price', text: 'Hindi-English teaching at Indian prices, unlike global platforms.' },
-  { title: 'Content that connects', text: 'Our videos teach the exact challenges inside our products.' },
-];
-
 export const AUDIENCES = [
   { title: 'Students & freshers', who: 'B.Tech, BCA, B.Com and MBA students, 20 to 24, across Tier 1, 2 and 3 cities.', need: 'Practical skills that clear SQL and analyst interviews.' },
   { title: 'Career switchers', who: '1 to 5 years in sales, ops, support, BPO or finance.', need: 'A clear path into analyst roles.' },

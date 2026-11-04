@@ -364,3 +364,8 @@
 .panel .steps {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.about__thesis {
+  max-width: 70ch;
+  font: 500 clamp(18px, 1.6vw, 24px) / 1.5 var(--font-display);
+  color: var(--text);
+}

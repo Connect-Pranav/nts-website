@@ -1,8 +1,8 @@
 import { InstagramLogo, LinkedinLogo, YoutubeLogo } from '@phosphor-icons/react';
 import { GlassButton } from '../components/GlassButton';
-import { COMMUNITY, CONTENT_PILLARS, WEEKLY_CONTENT } from '../content/blueprint';
+import { COMMUNITY, WEEKLY_CONTENT } from '../content/blueprint';
 import { SITE } from '../config';
-import { Cards, PageHero, Section } from './parts';
+import { PageHero, Section } from './parts';
 
 const CHANNELS = [
   { name: 'YouTube', handle: '@NikhilsTechStudio', text: 'Long tutorials, including the SQL Interview: FAANG series.', href: SITE.social.youtube, icon: YoutubeLogo, cta: 'Subscribe' },
@@ -32,9 +32,6 @@ export function Media() {
             </li>
           ))}
         </ul>
-      </Section>
-      <Section id="pillars" title={<>What we <em>publish</em></>}>
-        <Cards items={CONTENT_PILLARS} cols={4} />
       </Section>
       <Section id="weekly" title="Every week">
         <ul className="rows">

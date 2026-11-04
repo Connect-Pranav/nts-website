@@ -3,9 +3,9 @@ import { FOUNDER } from '../content/blueprint';
 import { GlassButton } from './GlassButton';
 import './FounderNote.css';
 
-/** Founder's view: photo + note from the Company Blueprint. `full` shows the whole note (About page). */
-export function FounderNote({ full = false }: { full?: boolean }) {
-  const paras = full ? FOUNDER.note : FOUNDER.note.slice(0, 2);
+/** Founder's view: photo + note from the Company Blueprint. */
+export function FounderNote() {
+  const paras = FOUNDER.note;
   return (
     <section className="sec founder" aria-labelledby="founder-title">
       <div className="wrap">
@@ -32,11 +32,9 @@ export function FounderNote({ full = false }: { full?: boolean }) {
                 <p className="founder__role">{FOUNDER.role}</p>
               </div>
               <div className="founder__ctas">
-                {!full && (
-                  <GlassButton href="/about" size="sm" arrow>
-                    Our story
-                  </GlassButton>
-                )}
+                <GlassButton href="/about" size="sm" arrow>
+                  Our story
+                </GlassButton>
                 <GlassButton href={FOUNDER.linkedin} external size="sm" variant="secondary" icon={<LinkedinLogo size={18} />}>
                   Connect
                 </GlassButton>

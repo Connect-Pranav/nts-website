@@ -1,7 +1,5 @@
-import { FounderNote } from '../components/FounderNote';
-import { Foundation } from '../components/Foundation';
 import { GlassButton } from '../components/GlassButton';
-import { AUDIENCES, FOUNDATION, JOURNEY, TEAM, UNITS, WHY_US } from '../content/blueprint';
+import { AUDIENCES, FOUNDATION, JOURNEY, TEAM, UNITS } from '../content/blueprint';
 import { Cards, PageHero, Section, Steps } from './parts';
 
 export function About() {
@@ -15,10 +13,8 @@ export function About() {
           Partner with us
         </GlassButton>
       </PageHero>
-      <FounderNote full />
-      <Foundation />
-      <Section id="why" title={<>Why learners choose <em>NTS</em></>}>
-        <Cards items={WHY_US} cols={4} />
+      <Section id="thesis" title={<>Our <em>thesis</em></>}>
+        <p className="about__thesis">{FOUNDATION.thesis}</p>
       </Section>
       <Section id="who" title="Who we serve" lead="Students and switchers learn with us from day one. Professionals and institutions help us scale.">
         <Cards items={AUDIENCES.map((a) => ({ title: a.title, text: a.who, meta: a.need }))} cols={4} />

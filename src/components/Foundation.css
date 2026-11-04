@@ -1,9 +1,9 @@
 .fnd {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-columns: 1.2fr 1fr;
   grid-template-areas:
-    'vision mission position'
-    'vision north north';
+    'vision position'
+    'vision north';
   gap: clamp(14px, 1.6vw, 24px);
 }
 .fnd > * {
@@ -37,10 +37,7 @@
   font: 700 clamp(28px, 3vw, 46px) / 1.12 var(--font-display);
   letter-spacing: -0.02em;
 }
-.fnd__card:nth-of-type(2) {
-  grid-area: mission;
-}
-.fnd__card:nth-of-type(3) {
+.fnd__card {
   grid-area: position;
 }
 .fnd__north {
@@ -89,11 +86,8 @@
 }
 @media (max-width: 1000px) {
   .fnd {
-    grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      'vision vision'
-      'mission position'
-      'north north';
+    grid-template-columns: 1fr;
+    grid-template-areas: 'vision' 'position' 'north';
   }
   .fnd__vision {
     min-height: 220px;
@@ -105,7 +99,7 @@
 @media (max-width: 600px) {
   .fnd {
     grid-template-columns: 1fr;
-    grid-template-areas: 'vision' 'mission' 'position' 'north';
+    grid-template-areas: 'vision' 'position' 'north';
   }
   .vals {
     grid-template-columns: 1fr;

@@ -1,26 +1,27 @@
-import { Compass, Eye, Target, Pulse } from '@phosphor-icons/react';
+import { Compass, Eye, Pulse } from '@phosphor-icons/react';
 import { FOUNDATION, VALUES } from '../content/blueprint';
 import './Foundation.css';
 
-/** Vision, mission, positioning, north star and values. `compact` hides the thesis (homepage). */
-export function Foundation({ compact = false }: { compact?: boolean }) {
+/** Vision, positioning, north star and values (the mission is already the hero line). */
+export function Foundation() {
   return (
     <section className="sec foundation" aria-labelledby="foundation-title">
       <div className="wrap">
         <h2 id="foundation-title" className="sec__title">
           What we stand <em>for</em>
         </h2>
-        {!compact && <p className="sec__lead">{FOUNDATION.thesis}</p>}
         <div className="sec__body fnd">
           <article className="fnd__vision glass">
             <Eye size={40} weight="light" className="card__icon" aria-hidden="true" />
             <h3>Vision</h3>
-            <p className="fnd__big">{FOUNDATION.vision}</p>
-          </article>
-          <article className="fnd__card glass">
-            <Target size={36} weight="light" className="card__icon" aria-hidden="true" />
-            <h3>Mission</h3>
-            <p>{FOUNDATION.mission}</p>
+            <p className="fnd__big">
+              {FOUNDATION.vision.split('job-ready').map((part, i, arr) => (
+                <span key={i}>
+                  {part}
+                  {i < arr.length - 1 && <span style={{ whiteSpace: 'nowrap' }}>job-ready</span>}
+                </span>
+              ))}
+            </p>
           </article>
           <article className="fnd__card glass">
             <Compass size={36} weight="light" className="card__icon" aria-hidden="true" />
