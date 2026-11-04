@@ -12,6 +12,7 @@ import * as analytics from './analytics.mjs';
 import * as ops from './ops.mjs';
 import * as brain from './brain.mjs';
 import * as integ from './integrations.mjs';
+import * as yt from './youtube.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -137,6 +138,11 @@ export async function handle(rawEnv, request, url, ctx) {
     if (b?.status) await ops.log(rawEnv, 'social', `Comment by ${c.author}: ${b.status}`);
     return json({ comment: c });
   }
+  if (path === '/api/dev/youtube' && method === 'GET') return json(await yt.status(rawEnv, url.origin));
+  if (path === '/api/dev/youtube/connect' && method === 'POST') return json(await yt.start(rawEnv, url.origin));
+  if (path === '/api/dev/youtube' && method === 'DELETE') return json(await yt.disconnect(rawEnv));
+  const pub = path.match(/^\/api\/dev\/social\/([\w-]{6,80})\/publish$/);
+  if (pub && method === 'POST') return json(await yt.publishReply(rawEnv, pub[1], (await body(request))?.reply));
   if (path === '/api/dev/leads' && method === 'POST') return json(await signals.addLead(rawEnv, await body(request)));
 
   // Signals (lead scraper + sources) and SOMA analytics

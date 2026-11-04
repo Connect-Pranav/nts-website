@@ -6,6 +6,7 @@ import * as dev from './dev.mjs';
 import * as work from './work.mjs';
 import * as analytics from './analytics.mjs';
 import { handleMcp } from './mcp.mjs';
+import * as ytOAuth from './youtube.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -119,6 +120,13 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
     if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
+    if (url.pathname === '/api/yt/callback' && request.method === 'GET') {
+      try {
+        return await ytOAuth.callback(env, url);
+      } catch (e) {
+        return json({ error: e.status ? e.message : 'Sign-in failed.' }, e.status || 500);
+      }
+    }
     if (url.pathname === '/mcp') {
       try {
         return await handleMcp(await withSettings(env), request);

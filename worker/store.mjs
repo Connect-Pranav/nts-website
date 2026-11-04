@@ -16,6 +16,9 @@ export const SETTINGS = {
   GITHUB_TOKEN: { label: 'GitHub token (optional) - fine-grained, this repo only: Contents read, Actions read/write. For Deployments and Run tests', secret: true, check: (v) => /^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v) || 'should start with github_pat_ (fine-grained token)' },
   GITHUB_REPO: { label: 'GitHub repo (optional, default Connect-Pranav/nts-website)', secret: false, check: (v) => /^[\w.-]+\/[\w.-]+$/.test(v) || 'must look like owner/repo' },
   MCP_TOKEN: { label: 'MCP token (optional) - separate token for Claude Code; otherwise the Dev token is used', secret: true, check: (v) => /^[\x21-\x7e]{16,200}$/.test(v) || 'at least 16 characters, no spaces' },
+  YT_CLIENT_ID: { label: 'YouTube sign-in: OAuth client ID (Web application) - lets the Community Manager post comment replies', secret: false, check: (v) => /^[\w-]+\.apps\.googleusercontent\.com$/.test(v) || 'should end with .apps.googleusercontent.com' },
+  YT_CLIENT_SECRET: { label: 'YouTube sign-in: OAuth client secret', secret: true, check: (v) => /^[\w-]{20,80}$/.test(v) || 'looks incomplete (usually starts with GOCSPX-)' },
+  YT_REFRESH_TOKEN: { label: 'YouTube channel sign-in (set by Connect YouTube)', secret: true, internal: true, check: (v) => /^[\w./-]{20,300}$/.test(v) || 'invalid token' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };
@@ -60,7 +63,7 @@ export async function withSettings(env) {
 
 export async function listSettings(env) {
   const saved = await readSaved(env);
-  return Object.entries(SETTINGS).map(([name, def]) => {
+  return Object.entries(SETTINGS).filter(([, def]) => !def.internal).map(([name, def]) => {
     const fromWorker = Boolean(env[name]);
     const s = saved[name];
     const value = fromWorker ? env[name] : s?.value;

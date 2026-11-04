@@ -595,10 +595,36 @@ export function SocialPage({ api }: { api: Api }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState<Record<string, string>>({});
-  const load = useCallback(() => api<{ comments: Comment[]; youtube: boolean; instagram: boolean }>('/api/dev/social').then(setD, (e: Error) => setErr(e.message)), [api]);
+  const [yt, setYt] = useState<{ configured: boolean; connected: boolean; redirectUri: string; channel: { title: string } | null } | null>(null);
+  const [posting, setPosting] = useState('');
+  const load = useCallback(() => {
+    api<{ comments: Comment[]; youtube: boolean; instagram: boolean }>('/api/dev/social').then(setD, (e: Error) => setErr(e.message));
+    api<{ configured: boolean; connected: boolean; redirectUri: string; channel: { title: string } | null }>('/api/dev/youtube').then(setYt, () => {});
+  }, [api]);
   useEffect(() => {
     load();
   }, [load]);
+  const connect = async () => {
+    setErr('');
+    try {
+      const r = await api<{ url: string }>('/api/dev/youtube/connect', { method: 'POST', body: '{}' });
+      window.location.href = r.url;
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  };
+  const publish = async (c: Comment) => {
+    setPosting(c.id);
+    setErr('');
+    try {
+      await api(`/api/dev/social/${c.id}/publish`, { method: 'POST', body: JSON.stringify({ reply: edit[c.id] ?? c.reply }) });
+      await load();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setPosting('');
+    }
+  };
   const set = async (c: Comment, b: object) => {
     await api(`/api/dev/social/${c.id}`, { method: 'POST', body: JSON.stringify(b) });
     load();
@@ -627,12 +653,31 @@ export function SocialPage({ api }: { api: Api }) {
       <Card title="Platforms" icon={<Heartbeat size={20} />}>
         <ul className="so-plat">
           <li>
-            <YoutubeLogo size={22} weight="fill" /> YouTube · reading comments: <Pill tone={d.youtube ? 'ok' : 'warn'}>{d.youtube ? 'connected' : 'add YOUTUBE_API_KEY'}</Pill> · posting replies: <Pill tone="warn">needs channel sign-in (OAuth), not connected</Pill>
+            <YoutubeLogo size={22} weight="fill" /> YouTube · reading comments: <Pill tone={d.youtube ? 'ok' : 'warn'}>{d.youtube ? 'connected' : 'add YOUTUBE_API_KEY'}</Pill> · posting replies:{' '}
+            {yt?.connected ? (
+              <>
+                <Pill tone="ok">signed in{yt.channel ? ` as ${yt.channel.title}` : ''}</Pill>
+                <button type="button" className="nc-link" onClick={() => api('/api/dev/youtube', { method: 'DELETE' }).then(load)}>
+                  Disconnect
+                </button>
+              </>
+            ) : yt?.configured ? (
+              <button type="button" className="dx-btn dx-btn--primary" onClick={connect}>
+                <YoutubeLogo size={14} weight="fill" /> Connect YouTube
+              </button>
+            ) : (
+              <Pill tone="warn">add YT_CLIENT_ID + YT_CLIENT_SECRET in Settings</Pill>
+            )}
           </li>
+          {yt && !yt.connected && (
+            <li className="ov-muted">
+              Google OAuth client (Web application) → Authorized redirect URI: <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{yt.redirectUri}</code>
+            </li>
+          )}
           <li>
             <InstagramLogo size={22} /> Instagram: <Pill tone={d.instagram ? 'ok' : 'warn'}>{d.instagram ? 'connected' : 'not connected (needs Instagram Graph API token from a Business/Creator account)'}</Pill>
           </li>
-          <li className="ov-muted">Mode: approval. Replies are drafted and checked; you post them yourself until official reply access is connected. Legal threats, serious complaints, personal data, security and harassment are always escalated, never auto-answered.</li>
+          <li className="ov-muted">Mode: approval. Every reply is drafted and checked, and is posted only when you press “Approve & post reply” (or post it yourself). Legal threats, serious complaints, personal data, security and harassment are always escalated, never auto-answered.</li>
         </ul>
         <div className="dx-row">
           <button
@@ -680,9 +725,14 @@ export function SocialPage({ api }: { api: Api }) {
               <>
                 <textarea className="dx-input" rows={2} value={edit[c.id] ?? c.reply} onChange={(e) => setEdit({ ...edit, [c.id]: e.target.value })} aria-label="Reply" />
                 <div className="dx-row">
+                  {yt?.connected && c.status !== 'replied' && (
+                    <button type="button" className="dx-btn dx-btn--primary" disabled={posting === c.id} onClick={() => publish(c)}>
+                      <PaperPlaneTilt size={14} /> {posting === c.id ? 'Posting…' : 'Approve & post reply'}
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="dx-btn dx-btn--primary"
+                    className={`dx-btn ${yt?.connected ? '' : 'dx-btn--primary'}`}
                     onClick={() => {
                       navigator.clipboard?.writeText(edit[c.id] ?? c.reply);
                       window.open(c.url, '_blank', 'noopener');
@@ -690,9 +740,11 @@ export function SocialPage({ api }: { api: Api }) {
                   >
                     <Copy size={14} /> Copy & open comment
                   </button>
-                  <button type="button" className="dx-btn" onClick={() => set(c, { status: 'replied', reply: edit[c.id] ?? c.reply })}>
-                    <CheckCircle size={14} /> Mark replied
-                  </button>
+                  {c.status !== 'replied' && (
+                    <button type="button" className="dx-btn" onClick={() => set(c, { status: 'replied', reply: edit[c.id] ?? c.reply })}>
+                      <CheckCircle size={14} /> Mark replied
+                    </button>
+                  )}
                   <button type="button" className="dx-btn" onClick={() => set(c, { status: 'ignored' })}>
                     Ignore
                   </button>
