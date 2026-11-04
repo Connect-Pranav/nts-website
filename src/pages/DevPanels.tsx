@@ -284,7 +284,7 @@ export function BrainPanel({ api }: { api: Api }) {
 }
 
 // ---------------- Work board (agent team cycle) ----------------
-type Item = { id: string; agent: string; agentName: string; channel: string; title: string; body: string; status: 'waiting' | 'ready' | 'rejected'; topic: string; createdAt: string; brain: string; by: string; reason?: string };
+type Item = { id: string; agent: string; agentName: string; channel: string; title: string; body: string; status: 'waiting' | 'ready' | 'rejected'; topic: string; createdAt: string; brain: string; by: string; reason?: string; url?: string; leadId?: string };
 type Board = { items: Item[]; topics: string[]; cycles: number; updated: string | null; last: { topic: string; why: string; summary: string; count: number; brain: string; by: string; at: string } | null; autopilot: boolean };
 const FLOW = ['Brain', 'Plan', 'Agents draft', 'You approve', 'Team learns'];
 
@@ -400,6 +400,11 @@ export function WorkPanel({ api, ready }: { api: Api; ready: boolean }) {
             </header>
             <h3>{it.title}</h3>
             <pre>{it.body}</pre>
+            {it.url && (
+              <a className="dx-mono" href={it.url} target="_blank" rel="noreferrer">
+                ↗ open the lead’s thread (reply yourself after approval)
+              </a>
+            )}
             {it.reason && <p className="dx-mono dx-dim">note: {it.reason}</p>}
             {(() => {
               const im = imgs[it.id];

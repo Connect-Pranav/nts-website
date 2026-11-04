@@ -1,7 +1,8 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Brain, CopySimple, GearSix, Kanban, LockKey, Moon, Play, Robot, SignOut, Sun, X } from '@phosphor-icons/react';
+import { ArrowSquareOut, Brain, ChartLineUp, CopySimple, GearSix, Kanban, LockKey, Moon, Play, Robot, SignOut, Sun, X } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
+import { AnalyticsPanel, SignalsPanel } from './DevInsights';
 import { Assistant } from '../components/Assistant';
 import { navigate } from '../lib/router';
 import { downloadMarkdown, downloadPdf } from '../lib/download';
@@ -10,7 +11,7 @@ import './Dev.css';
 type Agent = { id: string; name: string; role: string; mission: string; enabled: boolean };
 type Engines = Record<string, { configured: boolean; model: string }>;
 type RunResult = { text: string; engine: string; model: string; inputTokens: number | null; outputTokens: number | null; latencyMs: number };
-type Tab = 'work' | 'agents' | 'brain' | 'settings';
+type Tab = 'work' | 'analytics' | 'agents' | 'brain' | 'settings';
 
 const KEY = 'nts-dev-token'; // sessionStorage only: cleared when the tab closes
 const OFF_KEY = 'nts-dev-off';
@@ -32,6 +33,7 @@ async function api<T>(token: string, path: string, init: RequestInit = {}): Prom
 
 const TABS: [Tab, string, typeof Robot][] = [
   ['work', 'Work', Kanban],
+  ['analytics', 'Analytics', ChartLineUp],
   ['agents', 'Agents', Robot],
   ['brain', 'Brain', Brain],
   ['settings', 'Settings', GearSix],
@@ -59,7 +61,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
   useEffect(() => {
     const onTab = (e: Event) => {
       const t = (e as CustomEvent<string>).detail;
-      if (t === 'work' || t === 'agents' || t === 'brain' || t === 'settings') setTab(t);
+      if (t === 'work' || t === 'analytics' || t === 'agents' || t === 'brain' || t === 'settings') setTab(t);
     };
     window.addEventListener('nts:devtab', onTab);
     const m = document.createElement('meta');
@@ -224,7 +226,13 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           <h1>{TABS.find(([k]) => k === tab)?.[1]}</h1>
         </header>
 
-        {tab === 'work' && <WorkPanel api={bound} ready={engineReady} />}
+        {tab === 'work' && (
+          <>
+            <SignalsPanel api={bound} onOpen={() => setTab('analytics')} />
+            <WorkPanel api={bound} ready={engineReady} />
+          </>
+        )}
+        {tab === 'analytics' && <AnalyticsPanel api={bound} />}
         {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
         {tab === 'brain' && <BrainPanel api={bound} />}
         {tab === 'agents' && (

@@ -4,6 +4,7 @@
 import { json } from './util.mjs';
 import * as dev from './dev.mjs';
 import * as work from './work.mjs';
+import * as analytics from './analytics.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -111,7 +112,7 @@ async function cached(url, ctx, compute) {
 export default {
   // Cloudflare cron (free): the NTS agent team runs a cycle on autopilot
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(work.scheduled(env));
+    ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env)]));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

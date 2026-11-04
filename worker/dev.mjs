@@ -7,6 +7,8 @@ import { generate, engineStatus } from './providers.mjs';
 import * as store from './store.mjs';
 import * as work from './work.mjs';
 import { generateImage } from './image.mjs';
+import * as signals from './signals.mjs';
+import * as analytics from './analytics.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
 const fails = new Map();
@@ -105,6 +107,24 @@ export async function handle(rawEnv, request, url) {
   if (path === '/api/dev/image' && method === 'POST') {
     if (bump(runs, `img:${clientIp(request)}`, 60_000) > 8) throw new HttpError(429, 'Slow down: 8 images a minute.');
     return json(await generateImage(env, await body(request)));
+  }
+
+  // Signals (lead scraper + sources) and SOMA analytics
+  if (path === '/api/dev/signals' && method === 'GET') return json(await signals.overview(rawEnv));
+  if (path === '/api/dev/signals/scan' && method === 'POST') {
+    if (bump(runs, `scan:${clientIp(request)}`, 60_000) > 3) throw new HttpError(429, 'Scan at most 3 times a minute.');
+    await signals.scrape(rawEnv);
+    return json(await signals.overview(rawEnv));
+  }
+  const ld = path.match(/^\/api\/dev\/signals\/leads\/([a-z]{2}_[A-Za-z0-9_-]{1,40})$/);
+  if (ld && method === 'POST') {
+    await signals.setLeadState(rawEnv, ld[1], (await body(request))?.state);
+    return json(await signals.overview(rawEnv));
+  }
+  if (path === '/api/dev/analytics' && method === 'GET') return json(await analytics.report(rawEnv, { force: url.searchParams.get('refresh') === '1' }));
+  if (path === '/api/dev/analytics/insights' && method === 'POST') {
+    if (bump(runs, `ins:${clientIp(request)}`, 60_000) > 3) throw new HttpError(429, 'At most 3 analyses a minute.');
+    return json(await analytics.report(rawEnv, { force: true, insights: true }));
   }
 
   // Work board: the agent team cycle (think -> plan -> execute -> learn)

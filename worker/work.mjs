@@ -6,6 +6,7 @@
 import { HttpError, newId, nowIso } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
+import * as signals from './signals.mjs';
 
 const KEY = 'work';
 const MAX_ITEMS = 150;
@@ -24,9 +25,10 @@ ${Object.entries(TEAM)
   .map(([id, a]) => `- ${id} = ${a.name}: ${a.job}`)
   .join('\n')}
 Produce 3 to 5 items across the agents (each agent at least once). Every item is ready to copy and use.
+If FRESH LEADS are given, add one extra item per lead (agent ops_soma_analytics, channel "All") with "lead_id": a short, genuinely helpful public reply that answers the person's actual question first and mentions the studio only if it truly helps.
 Follow the OWNER RULES and the BRAIN strictly, and learn from RECENT OWNER FEEDBACK. Never invent facts, prices, numbers, results or testimonials; use [placeholders].
 Never write bulk or unsolicited DMs, follow-for-follow, giveaway bait or messages with placeholders like [Follower Name].
-Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;
+Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false,"lead_id":"id or null"}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;
 
 const kv = (env) => {
   if (!env.NTS_KV) throw new HttpError(503, 'Storage is not set up (NTS_KV binding missing).');
@@ -54,14 +56,17 @@ export async function runCycle(rawEnv, { focus = '', by = 'owner' } = {}) {
     const recent = w.items.slice(0, 10).map((i) => i.title);
     if (recent.length) user += `\n\nRECENT OUTPUTS (do not repeat):\n- ${recent.join('\n- ')}`;
     if (w.topics.length) user += `\nRECENT TOPICS (pick something different): ${w.topics.slice(0, 10).join(', ')}`;
+    const leads = await signals.freshLeads(rawEnv, 2).catch(() => []);
+    if (leads.length) user += `\n\nFRESH LEADS (id | source | title | text):\n${leads.map((l) => `- ${l.id} | ${l.source} | ${l.title} | ${l.text.slice(0, 300)}`).join('\n')}`;
     const f = String(focus || '').trim().slice(0, 300);
     if (f) user += `\n\nOWNER WANTS THIS CYCLE TO FOCUS ON: ${f}`;
     const r = await generate(env, { system: SYS, prompt: user, maxTokens: 3500, json: true });
     const out = parseJson(r.text);
     const now = nowIso();
     const items = [];
-    for (const it of (Array.isArray(out.items) ? out.items : []).slice(0, 6)) {
+    for (const it of (Array.isArray(out.items) ? out.items : []).slice(0, 8)) {
       if (!it || typeof it.body !== 'string' || !it.body.trim()) continue;
+      const lead = it.lead_id ? leads.find((l) => l.id === it.lead_id) : null;
       const agent = TEAM[it.agent] ? it.agent : /linkedin/i.test(`${it.channel} ${it.title}`) ? 'ops_maya_docs' : /seo|metric|keyword|analytic/i.test(`${it.title}`) ? 'ops_soma_analytics' : 'ops_lakshmi_growth';
       items.push({
         id: newId('w'),
@@ -75,7 +80,9 @@ export async function runCycle(rawEnv, { focus = '', by = 'owner' } = {}) {
         createdAt: now,
         brain: `${r.engine} · ${r.model}`,
         by,
+        ...(lead ? { leadId: lead.id, url: lead.url, status: 'waiting' } : {}),
       });
+      if (lead) await signals.setLeadState(rawEnv, lead.id, 'drafted').catch(() => {});
     }
     if (!items.length) throw new HttpError(502, 'The team returned no usable work. Run the cycle again.');
     w.items = [...items, ...w.items].slice(0, MAX_ITEMS);
@@ -124,6 +131,7 @@ export async function setAutopilot(env, on) {
 /** Cron entry: runs a cycle only when autopilot is on and nothing is piling up unreviewed. */
 export async function scheduled(env) {
   if (!env.NTS_KV) return;
+  await signals.scrape(env).catch((e) => console.log('[signals] scrape failed:', e.message));
   const w = await getWork(env);
   if (!w.autopilot) return;
   if (w.items.filter((i) => i.status === 'waiting').length >= 25) return; // wait for the owner to review
