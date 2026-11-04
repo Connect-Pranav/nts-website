@@ -60,7 +60,7 @@ export function SettingsPanel({ api, onEngines }: { api: Api; onEngines: (e: Eng
   return (
     <div className="dset">
       <p className="dx-mono dx-dim dset__note">keys are encrypted · only last 4 chars shown · Cloudflare secrets override</p>
-      {[rows.filter((r) => /_API_KEY$/.test(r.name)), rows.filter((r) => !/_API_KEY$/.test(r.name))].map((group, gi) => {
+      {[rows.filter((r) => /(_API_KEY|_TOKEN|_CLIENT_ID|_CLIENT_SECRET)$/.test(r.name)), rows.filter((r) => !/(_API_KEY|_TOKEN|_CLIENT_ID|_CLIENT_SECRET)$/.test(r.name))].map((group, gi) => {
         const list = (
       <ul className="dset__list">
         {group.map((s) => {
