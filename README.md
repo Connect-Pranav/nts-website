@@ -43,3 +43,10 @@ Token-protected agent console. Open it from the `</>` icon in the header (inside
 | `YOUTUBE_API_KEY` | Watch Intro plays the latest @NikhilsTechStudio video |
 | `DEV_TOKEN` | Dev Mode access |
 | `GEMINI_API_KEY` / `GROQ_API_KEY` | Running agents in Dev Mode (free tiers) |
+
+## Disha (chat + voice assistant, every page)
+All VANI features from AGENTVERSE, rebuilt for NTS: floating orb, chat panel, full-screen mode, mic input (Hindi/Hinglish/English), spoken replies, conversation mode, "Hi Disha" wake word, stop/interrupt, clear chat, opening brief, suggestion chips, and a local rule brain when no AI key is set.
+- **Visitors:** answers from public NTS knowledge, navigates pages, opens YouTube/Instagram/LinkedIn. Free device voice.
+- **Owner** (Dev token entered in this tab): Disha reads the Brain, runs the 3 agents (LinkedIn Content Writer, Social Media Manager, Growth & Analytics), saves results to the Brain, opens Dev tabs.
+- **Voice:** owner can use Sarvam Bulbul (`SARVAM_API_KEY` in Dev Mode → Settings; voice `DISHA_SARVAM_SPEAKER`, daily cap `DISHA_TTS_DAILY_CHARS`, default 5000). Sarvam is paid per character after sign-up credits; cached per sentence; falls back to the free device voice. Visitors never use Sarvam.
+- API: `POST /api/disha/chat`, `GET /api/disha/voice` (owner), `POST /api/disha/tts` (owner).

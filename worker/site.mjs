@@ -3,6 +3,7 @@
 // Cached for 6 hours at the edge, so the daily API quota is barely touched.
 import { json } from './util.mjs';
 import * as dev from './dev.mjs';
+import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
 const CACHE_SECONDS = 6 * 3600;
@@ -111,6 +112,13 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
     if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
+    if (url.pathname.startsWith('/api/disha/')) {
+      try {
+        return await disha.handle(env, request, url);
+      } catch (e) {
+        return json({ error: e.status ? e.message : 'Something went wrong.' }, e.status || 500);
+      }
+    }
     if (url.pathname.startsWith('/api/dev/')) {
       try {
         return await dev.handle(env, request, url);

@@ -10,6 +10,9 @@ export const SETTINGS = {
   GEMINI_API_KEY: { label: 'Gemini API key (free, aistudio.google.com) - runs the agents', secret: true, test: 'gemini', check: (v) => /^[A-Za-z0-9._-]{30,200}$/.test(v) || 'looks incomplete. Copy the whole key from aistudio.google.com/apikey' },
   GROQ_API_KEY: { label: 'Groq API key (free, console.groq.com) - backup engine', secret: true, test: 'groq', check: (v) => /^gsk_[A-Za-z0-9]{20,}$/.test(v) || 'should start with "gsk_"' },
   YOUTUBE_API_KEY: { label: 'YouTube Data API key (optional) - the site already works without it', secret: true, check: (v) => /^[A-Za-z0-9._-]{30,200}$/.test(v) || 'looks incomplete. Copy the whole key' },
+  SARVAM_API_KEY: { label: 'Sarvam AI key (dashboard.sarvam.ai) - natural Indian voice for Disha, owner only, paid per character after sign-up credits', secret: true, check: (v) => /^[A-Za-z0-9._-]{16,200}$/.test(v) || 'looks incomplete. Copy the whole key from dashboard.sarvam.ai' },
+  DISHA_SARVAM_SPEAKER: { label: 'Disha voice (optional): priya, simran, ishita, ritu, kavya or shreya', secret: false, check: (v) => /^(priya|simran|ishita|ritu|kavya|shreya)$/.test(v) || 'must be one of priya, simran, ishita, ritu, kavya, shreya' },
+  DISHA_TTS_DAILY_CHARS: { label: 'Sarvam daily character limit (optional, default 5000)', secret: false, check: (v) => (/^\d{1,6}$/.test(v) && Number(v) <= 200000) || 'must be a whole number up to 200000' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-2.5-flash)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default llama-3.3-70b-versatile)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };

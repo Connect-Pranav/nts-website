@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { SearchDialog } from './components/SearchDialog';
 import { VideoModal } from './components/VideoModal';
+import { Disha } from './components/Disha';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/SimplePage';
 import { About } from './pages/About';
@@ -96,6 +97,7 @@ export function App() {
       </main>
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <Disha />
       {introId && <VideoModal videoId={introId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
     </>
   );

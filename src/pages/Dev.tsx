@@ -45,6 +45,14 @@ export function Dev() {
   const [tab, setTab] = useState<'agents' | 'brain' | 'settings'>('agents');
   const bound = useCallback(<T,>(path: string, init?: RequestInit) => api<T>(token, path, init), [token]);
   const onEngines = useCallback((e: Engines) => setEngines(e), []);
+  useEffect(() => {
+    const onTab = (e: Event) => {
+      const t = (e as CustomEvent<string>).detail;
+      if (t === 'agents' || t === 'brain' || t === 'settings') setTab(t);
+    };
+    window.addEventListener('nts:devtab', onTab);
+    return () => window.removeEventListener('nts:devtab', onTab);
+  }, []);
 
   useEffect(() => {
     const m = document.createElement('meta');
@@ -91,6 +99,7 @@ export function Dev() {
     }
     setToken('');
     setAgents(null);
+    window.dispatchEvent(new Event('nts:devtoken'));
   }
 
   async function unlock(e: React.FormEvent) {
@@ -106,6 +115,7 @@ export function Dev() {
       }
       setToken(input.trim());
       setInput('');
+      window.dispatchEvent(new Event('nts:devtoken'));
     } catch (err) {
       setError((err as Error).message);
     } finally {
