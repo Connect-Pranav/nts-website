@@ -1,6 +1,6 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Brain, CopySimple, GearSix, LockKey, Play, Robot, SignOut, X } from '@phosphor-icons/react';
+import { ArrowSquareOut, Brain, CopySimple, GearSix, LockKey, Moon, Play, Robot, SignOut, Sun, X } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel } from './DevPanels';
 import { Assistant } from '../components/Assistant';
 import { navigate } from '../lib/router';
@@ -35,7 +35,7 @@ const TABS: [Tab, string, typeof Robot][] = [
   ['settings', 'Settings', GearSix],
 ];
 
-export function Dev() {
+export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggleTheme: () => void }) {
   const [token, setToken] = useState(readToken);
   const [input, setInput] = useState('');
   const [agents, setAgents] = useState<Agent[] | null>(null);
@@ -202,6 +202,9 @@ export function Dev() {
               <small className="dx-mono">{e.configured ? e.model.replace(/^.*\//, '') : 'off'}</small>
             </p>
           ))}
+          <button type="button" className="dx-side__act" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Light theme' : 'Dark theme'}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />} <span>{theme === 'dark' ? 'Light' : 'Dark'} theme</span>
+          </button>
           <button type="button" className="dx-side__act" onClick={() => navigate('/')}>
             <ArrowSquareOut size={16} /> <span>Website</span>
           </button>

@@ -22,7 +22,7 @@ const ROUTES: Record<string, { title: string; render: () => JSX.Element }> = {
   '/insights': { title: 'Insights', render: () => <Insights /> },
   '/media': { title: 'Media Hub', render: () => <Media /> },
   '/contact': { title: 'Get started', render: () => <Contact /> },
-  '/dev': { title: 'Dev Mode', render: () => <Dev /> },
+  '/dev': { title: 'Dev Mode', render: () => <></> },
 };
 import { SITE } from './config';
 import { navigate, usePath } from './lib/router';
@@ -80,7 +80,7 @@ export function App() {
   }, [introId]);
 
   // Dev Mode is its own console: no public header, footer, intro or Disha
-  if (path === '/dev') return <Dev />;
+  if (path === '/dev') return <Dev theme={theme} onToggleTheme={toggle} />;
 
   return (
     <>
