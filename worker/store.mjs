@@ -7,9 +7,9 @@ import { b64, unb64 } from './crypto.mjs';
 import { BRAND } from './agents.mjs';
 
 export const SETTINGS = {
-  GEMINI_API_KEY: { label: 'Gemini API key (free, aistudio.google.com) - runs the agents', secret: true, test: 'gemini', check: (v) => /^AI[A-Za-z0-9_-]{30,}$/.test(v) || 'should start with "AI" (copy it from aistudio.google.com/apikey)' },
+  GEMINI_API_KEY: { label: 'Gemini API key (free, aistudio.google.com) - runs the agents', secret: true, test: 'gemini', check: (v) => /^[A-Za-z0-9._-]{30,200}$/.test(v) || 'looks incomplete. Copy the whole key from aistudio.google.com/apikey' },
   GROQ_API_KEY: { label: 'Groq API key (free, console.groq.com) - backup engine', secret: true, test: 'groq', check: (v) => /^gsk_[A-Za-z0-9]{20,}$/.test(v) || 'should start with "gsk_"' },
-  YOUTUBE_API_KEY: { label: 'YouTube Data API key (optional) - the site already works without it', secret: true, check: (v) => /^AI[A-Za-z0-9_-]{30,}$/.test(v) || 'should start with "AI"' },
+  YOUTUBE_API_KEY: { label: 'YouTube Data API key (optional) - the site already works without it', secret: true, check: (v) => /^[A-Za-z0-9._-]{30,200}$/.test(v) || 'looks incomplete. Copy the whole key' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-2.5-flash)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default llama-3.3-70b-versatile)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };

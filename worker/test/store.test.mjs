@@ -31,6 +31,13 @@ test('settings: save encrypted, list shows only last 4, invalid rejected, delete
   assert.equal(r.body.engines.gemini.configured, false);
 });
 
+test('new-format Gemini keys (AQ.…) are accepted', async () => {
+  const env = mk(makeKV());
+  const r = await call(env, '/api/dev/settings', 'POST', { name: 'GEMINI_API_KEY', value: 'AQ.Ab8RN6Lx_example-key-1234567890abcdefXYZ' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.engines.gemini.configured, true);
+});
+
 test('Cloudflare secret wins over saved value', async () => {
   const env = mk(makeKV(), { GROQ_API_KEY: 'gsk_fromCloudflare1234567890abcd' });
   const r = await call(env, '/api/dev/settings');
