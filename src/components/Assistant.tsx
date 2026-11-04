@@ -53,8 +53,8 @@ const CFG = {
   },
   marg: {
     name: 'Marg',
-    avatar: '',
-    bigAvatar: '',
+    avatar: '/img/marg-160.webp',
+    bigAvatar: '/img/marg-512.webp',
     chatUrl: '/api/marg/chat',
     wake: /(?:^|\s)(?:hi|hii|hey|hello|ok|okay|oye|हाय|हे)\s*,?\s*(?:marg|maarg|mark|मार्ग)\b/i,
     wakeLabel: 'Hi Marg',

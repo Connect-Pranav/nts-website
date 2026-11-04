@@ -4,6 +4,7 @@ import { Footer } from './components/Footer';
 import { SearchDialog } from './components/SearchDialog';
 import { VideoModal } from './components/VideoModal';
 import { Assistant } from './components/Assistant';
+import { IntroSplash } from './components/IntroSplash';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/SimplePage';
 import { About } from './pages/About';
@@ -103,6 +104,7 @@ export function App() {
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       {path !== '/dev' && <Assistant kind="disha" />}
+      <IntroSplash />
       {introId && <VideoModal videoId={introId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
     </>
   );
