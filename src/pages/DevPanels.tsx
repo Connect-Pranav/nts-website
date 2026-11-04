@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle, Trash, WarningCircle } from '@phosphor-icons/react';
-import { GlassButton } from '../components/GlassButton';
 
 export type Engines = Record<string, { configured: boolean; model: string }>;
 type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
@@ -54,23 +53,25 @@ export function SettingsPanel({ api, onEngines }: { api: Api; onEngines: (e: Eng
     }
   }
 
-  if (err) return <p className="dev__err" role="alert">{err}</p>;
-  if (!rows) return <div className="dev__skel" aria-label="Loading settings" />;
+  if (err) return <p className="dx-err" role="alert">{err}</p>;
+  if (!rows) return <div className="dx-skel" aria-label="Loading settings" />;
 
   return (
     <div className="dset">
-      <p className="sec__lead" style={{ marginTop: 0 }}>
-        Add API keys here. They are encrypted before saving and never shown again, only the last 4 characters. Keys added in Cloudflare always take priority.
-      </p>
+      <p className="dx-mono dx-dim dset__note">keys are encrypted · only last 4 chars shown · Cloudflare secrets override</p>
+      {[rows.filter((r) => /_API_KEY$/.test(r.name)), rows.filter((r) => !/_API_KEY$/.test(r.name))].map((group, gi) => {
+        const list = (
       <ul className="dset__list">
-        {rows.map((s) => {
+        {group.map((s) => {
           const engine = s.name === 'GEMINI_API_KEY' ? 'gemini' : s.name === 'GROQ_API_KEY' ? 'groq' : null;
           const m = msg[s.name];
           return (
-            <li key={s.name} className="dset__row glass">
+            <li key={s.name} className="dset__row dx-card">
               <div className="dset__info">
-                <p className="dset__name">{s.name}</p>
-                <p className="dset__label">{s.label}</p>
+                <p className="dset__name">
+                  <i className={`dx-dot ${s.broken ? 'dx-dot--bad' : s.source ? 'dx-dot--ok' : ''}`} /> {s.name}
+                </p>
+                <p className="dset__label">{s.label.replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s+-\s+.*$/, '').trim()}</p>
                 <p className={`dset__status ${s.source ? 'on' : ''}`}>
                   {s.broken
                     ? 'Saved value cannot be read (Dev token changed). Save it again.'
@@ -81,6 +82,7 @@ export function SettingsPanel({ api, onEngines }: { api: Api; onEngines: (e: Eng
                         : 'Not set'}
                 </p>
               </div>
+              {s.source === 'cloudflare' && <span className="dx-mono dx-dim">managed in Cloudflare</span>}
               {s.source !== 'cloudflare' && (
                 <form
                   className="dset__form"
@@ -92,21 +94,21 @@ export function SettingsPanel({ api, onEngines }: { api: Api; onEngines: (e: Eng
                   <label className="sr-only" htmlFor={`set-${s.name}`}>
                     {s.name}
                   </label>
-                  <input id={`set-${s.name}`} type={s.secret ? 'password' : 'text'} autoComplete="off" spellCheck={false} placeholder={s.source ? 'Replace value' : 'Paste value'} value={vals[s.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [s.name]: e.target.value }))} />
-                  <GlassButton type="submit" size="sm" onClick={() => undefined}>
+                  <input className="dx-input" id={`set-${s.name}`} type={s.secret ? 'password' : 'text'} autoComplete="off" spellCheck={false} placeholder={s.source ? 'Replace value' : 'Paste value'} value={vals[s.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [s.name]: e.target.value }))} />
+                  <button type="submit" className="dx-btn dx-btn--primary" disabled={!vals[s.name]?.trim() || busy === s.name}>
                     {busy === s.name ? 'Saving…' : 'Save'}
-                  </GlassButton>
+                  </button>
                   {s.source === 'saved' && (
-                    <button type="button" className="dset__icon" aria-label={`Remove ${s.name}`} onClick={() => act(s.name, () => api(`/api/dev/settings/${s.name}`, { method: 'DELETE' }), 'Removed')}>
+                    <button type="button" className="dx-iconbtn" aria-label={`Remove ${s.name}`} onClick={() => act(s.name, () => api(`/api/dev/settings/${s.name}`, { method: 'DELETE' }), 'Removed')}>
                       <Trash size={18} />
                     </button>
                   )}
                 </form>
               )}
               {engine && s.source && (
-                <GlassButton variant="secondary" size="sm" onClick={() => test(s.name, engine)}>
+                <button type="button" className="dx-btn" onClick={() => test(s.name, engine)}>
                   {busy === `${s.name}:test` ? 'Testing…' : 'Test'}
-                </GlassButton>
+                </button>
               )}
               {m && (
                 <p className={`dset__msg ${m.ok ? 'ok' : 'no'}`} role="status">
@@ -117,6 +119,16 @@ export function SettingsPanel({ api, onEngines }: { api: Api; onEngines: (e: Eng
           );
         })}
       </ul>
+        );
+        return gi === 0 ? (
+          <div key="keys">{list}</div>
+        ) : (
+          <details key="adv" className="dset__adv">
+            <summary className="dx-label">Advanced ({group.length})</summary>
+            {list}
+          </details>
+        );
+      })}
     </div>
   );
 }
@@ -150,30 +162,39 @@ export function BrainPanel({ api }: { api: Api }) {
     }
   }
 
-  if (!brain) return err ? <p className="dev__err" role="alert">{err}</p> : <div className="dev__skel" aria-label="Loading brain" />;
+  if (!brain) return err ? <p className="dx-err" role="alert">{err}</p> : <div className="dx-skel" aria-label="Loading brain" />;
 
   return (
     <div className="dbrain">
-      <section className="dbrain__col glass" aria-labelledby="kn-title">
-        <h2 id="kn-title">Knowledge</h2>
-        <p className="dbrain__hint">Every agent reads this before it works: brand voice, audience, channels, rules. {brain.isDefault ? 'Starting text comes from the Company Blueprint.' : `Last saved ${fmt(brain.updatedAt)}.`}</p>
+      <section className="dbrain__col dx-card" aria-labelledby="kn-title">
+        <header className="dbrain__head">
+          <h2 id="kn-title">Knowledge</h2>
+          <span className="dx-mono dx-dim">{brain.isDefault ? 'blueprint default' : `saved ${fmt(brain.updatedAt)}`}</span>
+        </header>
         <label className="sr-only" htmlFor="kn">
           Knowledge
         </label>
-        <textarea id="kn" rows={18} value={draft} maxLength={12000} onChange={(e) => setDraft(e.target.value)} />
+        <textarea id="kn" className="dx-input dx-mono" rows={20} value={draft} maxLength={12000} onChange={(e) => setDraft(e.target.value)} />
         <div className="dbrain__actions">
-          <GlassButton size="sm" onClick={() => run(() => api('/api/dev/brain', { method: 'PUT', body: JSON.stringify({ knowledge: draft }) }), 'Knowledge saved')}>
-            Save knowledge
-          </GlassButton>
-          <GlassButton size="sm" variant="secondary" onClick={() => run(() => api('/api/dev/brain/reset', { method: 'POST', body: '{}' }), 'Reset to blueprint')}>
-            Reset to blueprint
-          </GlassButton>
-          <span className="dbrain__count">{draft.length.toLocaleString('en-IN')} / 12,000</span>
+          <button type="button" className="dx-btn dx-btn--primary" disabled={draft === brain.knowledge} onClick={() => run(() => api('/api/dev/brain', { method: 'PUT', body: JSON.stringify({ knowledge: draft }) }), 'knowledge saved')}>
+            Save
+          </button>
+          <button type="button" className="dx-btn" onClick={() => run(() => api('/api/dev/brain/reset', { method: 'POST', body: '{}' }), 'reset to blueprint')}>
+            Reset
+          </button>
+          {(status || err) && (
+            <span className={err ? 'dx-err' : 'dx-ok'} role="status">
+              {err || status}
+            </span>
+          )}
+          <span className="dbrain__count dx-mono dx-dim">{draft.length.toLocaleString('en-IN')} / 12,000</span>
         </div>
       </section>
-      <section className="dbrain__col glass" aria-labelledby="notes-title">
-        <h2 id="notes-title">Saved notes ({brain.notes.length})</h2>
-        <p className="dbrain__hint">Approved posts, what worked, decisions. Use “Save to Brain” on any agent result, or add one here.</p>
+      <section className="dbrain__col dx-card" aria-labelledby="notes-title">
+        <header className="dbrain__head">
+          <h2 id="notes-title">Notes</h2>
+          <span className="dx-mono dx-dim">{brain.notes.length}</span>
+        </header>
         <form
           className="dbrain__add"
           onSubmit={(e) => {
@@ -184,14 +205,14 @@ export function BrainPanel({ api }: { api: Api }) {
           <label className="sr-only" htmlFor="nt">
             Note title
           </label>
-          <input id="nt" placeholder="Title (optional)" value={note.title} maxLength={120} onChange={(e) => setNote({ ...note, title: e.target.value })} />
+          <input id="nt" className="dx-input" placeholder="Title (optional)" value={note.title} maxLength={120} onChange={(e) => setNote({ ...note, title: e.target.value })} />
           <label className="sr-only" htmlFor="nx">
             Note
           </label>
-          <textarea id="nx" rows={3} placeholder="e.g. Carousels on SQL traps get the most saves on LinkedIn" value={note.text} maxLength={4000} required onChange={(e) => setNote({ ...note, text: e.target.value })} />
-          <GlassButton type="submit" size="sm" onClick={() => undefined}>
+          <textarea id="nx" className="dx-input" rows={3} placeholder="e.g. Carousels on SQL traps get the most saves on LinkedIn" value={note.text} maxLength={4000} required onChange={(e) => setNote({ ...note, text: e.target.value })} />
+          <button type="submit" className="dx-btn dx-btn--primary">
             Add note
-          </GlassButton>
+          </button>
         </form>
         <ul className="dbrain__notes">
           {brain.notes.map((n) => (
@@ -199,11 +220,11 @@ export function BrainPanel({ api }: { api: Api }) {
               <div>
                 <p className="dbrain__nt">{n.title}</p>
                 {n.text !== n.title && <p className="dbrain__nx">{n.text}</p>}
-                <p className="dbrain__nm">
+                <p className="dbrain__nm dx-mono dx-dim">
                   {n.source} · {fmt(n.createdAt)}
                 </p>
               </div>
-              <button type="button" className="dset__icon" aria-label={`Delete note ${n.title}`} onClick={() => run(() => api(`/api/dev/brain/notes/${n.id}`, { method: 'DELETE' }), 'Note deleted')}>
+              <button type="button" className="dx-iconbtn" aria-label={`Delete note ${n.title}`} onClick={() => run(() => api(`/api/dev/brain/notes/${n.id}`, { method: 'DELETE' }), 'Note deleted')}>
                 <Trash size={18} />
               </button>
             </li>
@@ -211,11 +232,6 @@ export function BrainPanel({ api }: { api: Api }) {
           {!brain.notes.length && <li className="dbrain__empty">No notes yet.</li>}
         </ul>
       </section>
-      {(status || err) && (
-        <p className={err ? 'dev__err' : 'dbrain__ok'} role="status">
-          {err || status}
-        </p>
-      )}
     </div>
   );
 }

@@ -711,3 +711,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Dev console is always dark */
+[data-theme='light'] .dx .wa {
+  --wa-bg: #0b141a;
+  --wa-head: #202c33;
+  --wa-in: #202c33;
+  --wa-out: #005c4b;
+  --wa-text: #e9edef;
+  --wa-sub: #8696a0;
+  --wa-meta: rgba(233, 237, 239, 0.6);
+  --wa-green: #00a884;
+  --wa-tick: #53bdeb;
+  --wa-field: #2a3942;
+  --wa-chip: #1f2c33;
+  --wa-sys: #182229;
+  --wa-doodle: rgba(255, 255, 255, 0.035);
+}

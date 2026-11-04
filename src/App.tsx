@@ -79,6 +79,9 @@ export function App() {
     else window.open(SITE.social.youtube, '_blank', 'noopener,noreferrer');
   }, [introId]);
 
+  // Dev Mode is its own console: no public header, footer, intro or Disha
+  if (path === '/dev') return <Dev />;
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -103,7 +106,7 @@ export function App() {
       </main>
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {path !== '/dev' && <Assistant kind="disha" />}
+      <Assistant kind="disha" />
       <IntroSplash />
       {introId && <VideoModal videoId={introId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
     </>

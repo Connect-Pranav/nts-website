@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Brain, GearSix, LockKey, LockKeyOpen, Robot, X } from '@phosphor-icons/react';
+// Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
+import { useCallback, useEffect, useState } from 'react';
+import { ArrowSquareOut, Brain, CopySimple, GearSix, LockKey, Play, Robot, SignOut, X } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel } from './DevPanels';
 import { Assistant } from '../components/Assistant';
-import { GlassButton } from '../components/GlassButton';
+import { navigate } from '../lib/router';
 import './Dev.css';
 
-type Agent = { id: string; name: string; team: string; teamName: string; role: string; mission: string; ntsRole: string | null; approvalRequired: string[]; enabled: boolean };
+type Agent = { id: string; name: string; role: string; mission: string; enabled: boolean };
 type Engines = Record<string, { configured: boolean; model: string }>;
 type RunResult = { text: string; engine: string; model: string; inputTokens: number | null; outputTokens: number | null; latencyMs: number };
+type Tab = 'agents' | 'brain' | 'settings';
 
 const KEY = 'nts-dev-token'; // sessionStorage only: cleared when the tab closes
 const OFF_KEY = 'nts-dev-off';
@@ -22,10 +24,16 @@ function readToken() {
 
 async function api<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
   const r = await fetch(path, { ...init, headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, ...(init.headers || {}) } });
-  const d = await r.json().catch(() => ({ error: `Request failed (HTTP ${r.status}). Is the Worker deployed?` }));
+  const d = await r.json().catch(() => ({ error: `Request failed (HTTP ${r.status}).` }));
   if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
   return d as T;
 }
+
+const TABS: [Tab, string, typeof Robot][] = [
+  ['agents', 'Agents', Robot],
+  ['brain', 'Brain', Brain],
+  ['settings', 'Settings', GearSix],
+];
 
 export function Dev() {
   const [token, setToken] = useState(readToken);
@@ -34,7 +42,6 @@ export function Dev() {
   const [engines, setEngines] = useState<Engines>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [team, setTeam] = useState('all');
   const [off, setOff] = useState<string[]>(() => {
     try {
       return JSON.parse(sessionStorage.getItem(OFF_KEY) || '[]');
@@ -43,24 +50,26 @@ export function Dev() {
     }
   });
   const [open, setOpen] = useState<Agent | null>(null);
-  const [tab, setTab] = useState<'agents' | 'brain' | 'settings'>('agents');
+  const [tab, setTab] = useState<Tab>('agents');
   const bound = useCallback(<T,>(path: string, init?: RequestInit) => api<T>(token, path, init), [token]);
   const onEngines = useCallback((e: Engines) => setEngines(e), []);
+
   useEffect(() => {
     const onTab = (e: Event) => {
       const t = (e as CustomEvent<string>).detail;
       if (t === 'agents' || t === 'brain' || t === 'settings') setTab(t);
     };
     window.addEventListener('nts:devtab', onTab);
-    return () => window.removeEventListener('nts:devtab', onTab);
-  }, []);
-
-  useEffect(() => {
     const m = document.createElement('meta');
     m.name = 'robots';
     m.content = 'noindex, nofollow';
     document.head.appendChild(m);
-    return () => m.remove();
+    document.body.classList.add('is-dev');
+    return () => {
+      window.removeEventListener('nts:devtab', onTab);
+      m.remove();
+      document.body.classList.remove('is-dev');
+    };
   }, []);
 
   useEffect(() => {
@@ -124,133 +133,125 @@ export function Dev() {
     }
   }
 
-  const teams = useMemo(() => {
-    const t = new Map<string, string>();
-    agents?.forEach((a) => t.set(a.team, a.teamName));
-    return [...t.entries()];
-  }, [agents]);
-  const shown = agents?.filter((a) => team === 'all' || a.team === team) ?? [];
-  const enabledCount = agents ? agents.filter((a) => !off.includes(a.id)).length : 0;
-  const engineReady = Object.values(engines).some((e) => e.configured);
+  const engineList = Object.entries(engines);
+  const engineReady = engineList.some(([, e]) => e.configured);
 
   if (!token || !agents) {
     return (
-      <section className="dev wrap" aria-labelledby="dev-title">
-        <form className="dev__gate glass" onSubmit={unlock}>
-          <LockKey size={40} weight="light" className="card__icon" aria-hidden="true" />
-          <h1 id="dev-title">Dev Mode</h1>
-          <p>Enter your dev token to open the agent console. The token stays in this tab only.</p>
-          <label htmlFor="dev-token" className="dev__label">
+      <div className="dx dx--gate">
+        <form className="dx-gate" onSubmit={unlock}>
+          <div className="dx-gate__brand">
+            <img src="/img/intro/logo.jpg" alt="" width={36} height={36} />
+            <span>
+              NTS <b>dev</b>
+            </span>
+          </div>
+          <p className="dx-mono dx-dim">
+            <span className="dx-accent">nts@dev</span>:~$ authenticate
+          </p>
+          <label htmlFor="dev-token" className="dx-label">
             Dev token
           </label>
-          <input id="dev-token" type="password" autoComplete="off" spellCheck={false} value={input} onChange={(e) => setInput(e.target.value)} required minLength={8} aria-describedby={error ? 'dev-err' : undefined} />
+          <div className="dx-gate__row">
+            <LockKey size={18} className="dx-dim" aria-hidden="true" />
+            <input id="dev-token" type="password" autoComplete="off" spellCheck={false} value={input} onChange={(e) => setInput(e.target.value)} required minLength={8} autoFocus aria-describedby={error ? 'dev-err' : undefined} />
+          </div>
           {error && (
-            <p id="dev-err" className="dev__err" role="alert">
+            <p id="dev-err" className="dx-err" role="alert">
               {error}
             </p>
           )}
-          <GlassButton type="submit" onClick={() => undefined} arrow>
+          <button type="submit" className="dx-btn dx-btn--primary" disabled={busy}>
             {busy ? 'Checking…' : 'Unlock'}
-          </GlassButton>
+          </button>
+          <button type="button" className="dx-link" onClick={() => navigate('/')}>
+            ← Back to website
+          </button>
         </form>
-      </section>
+      </div>
     );
   }
 
+  const enabled = agents.filter((a) => !off.includes(a.id)).length;
+
   return (
-    <section className="dev wrap" aria-labelledby="dev-title">
-      <header className="dev__head">
-        <div>
-          <p className="phero__eyebrow">Dev Mode</p>
-          <h1 id="dev-title" className="sec__title">
-            Agent <em>console</em>
-          </h1>
-          <p className="sec__lead">
-            {enabledCount} of {agents.length} agents enabled for LinkedIn, Instagram and YouTube. Agents draft text only; nothing is published from here.
-          </p>
+    <div className="dx">
+      <aside className="dx-side" aria-label="Dev navigation">
+        <div className="dx-side__brand">
+          <img src="/img/intro/logo.jpg" alt="" width={30} height={30} />
+          <span>
+            NTS <b>dev</b>
+          </span>
         </div>
-        <div className="dev__headside">
-          <p className={`dev__engine ${engineReady ? 'ok' : 'no'}`}>
-            {engineReady
-              ? `Engine: ${Object.entries(engines)
-                  .filter(([, e]) => e.configured)
-                  .map(([k, e]) => `${k} (${e.model})`)
-                  .join(', ')}`
-              : 'No AI engine key yet: add one in Settings'}
-          </p>
-          <GlassButton variant="secondary" size="sm" onClick={lock} icon={<LockKeyOpen size={18} />}>
-            Lock
-          </GlassButton>
+        <nav className="dx-nav" role="tablist" aria-label="Dev sections">
+          {TABS.map(([k, label, I]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+              <I size={18} aria-hidden="true" />
+              <span>{label}</span>
+              {k === 'agents' && <small>{enabled}</small>}
+              {k === 'settings' && !engineReady && <i className="dx-dot dx-dot--bad" aria-label="needs setup" />}
+            </button>
+          ))}
+        </nav>
+        <div className="dx-side__foot">
+          <p className="dx-label">Engines</p>
+          {engineList.map(([k, e]) => (
+            <p key={k} className="dx-eng" title={e.model}>
+              <i className={`dx-dot ${e.configured ? 'dx-dot--ok' : ''}`} />
+              <span>{k}</span>
+              <small className="dx-mono">{e.configured ? e.model.replace(/^.*\//, '') : 'off'}</small>
+            </p>
+          ))}
+          <button type="button" className="dx-side__act" onClick={() => navigate('/')}>
+            <ArrowSquareOut size={16} /> <span>Website</span>
+          </button>
+          <button type="button" className="dx-side__act" onClick={lock}>
+            <SignOut size={16} /> <span>Lock</span>
+          </button>
         </div>
-      </header>
+      </aside>
 
-      <div className="dev__tabs" role="tablist" aria-label="Dev Mode sections">
-        {([
-          ['agents', 'Agents', Robot],
-          ['brain', 'Brain', Brain],
-          ['settings', 'Settings', GearSix],
-        ] as const).map(([k, label, I]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-            <I size={18} aria-hidden="true" /> {label}
-            {k === 'settings' && !engineReady && <span className="dev__dot" aria-label="needs setup" />}
-          </button>
-        ))}
-      </div>
+      <main className="dx-main" id="main" tabIndex={-1}>
+        <header className="dx-top">
+          <p className="dx-mono dx-dim">
+            nts / dev / <span className="dx-accent">{tab}</span>
+          </p>
+          <h1>{TABS.find(([k]) => k === tab)?.[1]}</h1>
+        </header>
 
-      {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
-      {tab === 'brain' && <BrainPanel api={bound} />}
+        {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
+        {tab === 'brain' && <BrainPanel api={bound} />}
+        {tab === 'agents' && (
+          <ul className="dx-agents">
+            {agents.map((a) => {
+              const on = !off.includes(a.id);
+              return (
+                <li key={a.id} className={`dx-card dx-agent ${on ? '' : 'is-off'}`}>
+                  <span className="dx-agent__icon" aria-hidden="true">
+                    <Robot size={20} />
+                  </span>
+                  <div className="dx-agent__body">
+                    <p className="dx-agent__name">{a.name}</p>
+                    <p className="dx-mono dx-dim">{a.role.replace(/ agent$/i, '')}</p>
+                  </div>
+                  <label className="dx-switch">
+                    <input type="checkbox" checked={on} onChange={() => setOff((o) => (on ? [...o, a.id] : o.filter((x) => x !== a.id)))} />
+                    <span aria-hidden="true" />
+                    <span className="sr-only">{on ? `Disable ${a.name}` : `Enable ${a.name}`}</span>
+                  </label>
+                  <button type="button" className="dx-btn dx-btn--primary" disabled={!on || !engineReady} onClick={() => setOpen(a)} title={engineReady ? 'Run' : 'Add an AI key in Settings'}>
+                    <Play size={14} weight="fill" /> Run
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </main>
 
-      {tab === 'agents' && teams.length > 1 && (
-      <div className="dev__filters" role="toolbar" aria-label="Filter by team">
-        <button type="button" className={team === 'all' ? 'on' : ''} onClick={() => setTeam('all')}>
-          All ({agents.length})
-        </button>
-        {teams.map(([k, n]) => (
-          <button key={k} type="button" className={team === k ? 'on' : ''} onClick={() => setTeam(k)}>
-            {n}
-          </button>
-        ))}
-        <button type="button" className="dev__all" onClick={() => setOff([])}>
-          Enable all
-        </button>
-      </div>
-      )}
-
-      {tab === 'agents' && (
-      <ul className="dev__grid">
-        {shown.map((a) => {
-          const enabled = !off.includes(a.id);
-          return (
-            <li key={a.id} className={`dev__agent glass ${enabled ? '' : 'is-off'}`} style={{ marginTop: 0 }}>
-              <div className="dev__agenttop">
-                <Robot size={26} weight="light" aria-hidden="true" className="card__icon" />
-                <label className="dev__switch">
-                  <input type="checkbox" checked={enabled} onChange={() => setOff((o) => (enabled ? [...o, a.id] : o.filter((x) => x !== a.id)))} />
-                  <span aria-hidden="true" />
-                  <span className="sr-only">{enabled ? `Disable ${a.name}` : `Enable ${a.name}`}</span>
-                </label>
-              </div>
-              <h2>{a.name}</h2>
-              <p className="dev__role">{a.role}</p>
-              {a.ntsRole && <p className="dev__nts">NTS: {a.ntsRole}</p>}
-              <p className="dev__mission">{a.mission}</p>
-              <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-                {enabled ? (
-                  <GlassButton size="sm" onClick={() => setOpen(a)} arrow>
-                    Run
-                  </GlassButton>
-                ) : (
-                  <span className="dev__offlabel">Disabled</span>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      )}
       {open && <RunPanel token={token} agent={open} onClose={() => setOpen(null)} />}
       <Assistant kind="marg" token={token} />
-    </section>
+    </div>
   );
 }
 
@@ -260,16 +261,6 @@ function RunPanel({ token, agent, onClose }: { token: string; agent: Agent; onCl
   const [res, setRes] = useState<RunResult | null>(null);
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState('');
-
-  async function saveToBrain() {
-    if (!res) return;
-    try {
-      await api(token, '/api/dev/brain/notes', { method: 'POST', body: JSON.stringify({ title: `${agent.name}: ${task.slice(0, 80)}`, text: res.text.slice(0, 4000), source: agent.name }) });
-      setSaved('Saved to Brain');
-    } catch (x) {
-      setSaved((x as Error).message);
-    }
-  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -292,41 +283,54 @@ function RunPanel({ token, agent, onClose }: { token: string; agent: Agent; onCl
     }
   }
 
+  async function saveToBrain() {
+    if (!res) return;
+    try {
+      await api(token, '/api/dev/brain/notes', { method: 'POST', body: JSON.stringify({ title: `${agent.name}: ${task.slice(0, 80)}`, text: res.text.slice(0, 4000), source: agent.name }) });
+      setSaved('saved to brain');
+    } catch (x) {
+      setSaved((x as Error).message);
+    }
+  }
+
   return (
-    <div className="dev__runwrap" role="dialog" aria-modal="true" aria-labelledby="run-title" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <form className="dev__run glass" onSubmit={run}>
-        <button type="button" className="dev__x" onClick={onClose} aria-label="Close">
-          <X size={20} />
-        </button>
-        <h2 id="run-title">
-          {agent.name} <span>{agent.role}</span>
-        </h2>
-        <label htmlFor="task" className="dev__label">
+    <div className="dx-drawer" role="dialog" aria-modal="true" aria-labelledby="run-title" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <form className="dx-drawer__panel" onSubmit={run}>
+        <header className="dx-drawer__head">
+          <div>
+            <p className="dx-mono dx-dim">run / {agent.role.replace(/ agent$/i, '')}</p>
+            <h2 id="run-title">{agent.name}</h2>
+          </div>
+          <button type="button" className="dx-iconbtn" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </header>
+        <label htmlFor="task" className="dx-label">
           Task
         </label>
-        <textarea id="task" rows={5} value={task} onChange={(e) => setTask(e.target.value)} minLength={3} maxLength={4000} required placeholder="Describe the task for this agent" autoFocus />
-        <GlassButton type="submit" onClick={() => undefined} arrow>
-          {busy ? 'Running…' : 'Run agent'}
-        </GlassButton>
+        <textarea id="task" className="dx-input" rows={5} value={task} onChange={(e) => setTask(e.target.value)} minLength={3} maxLength={4000} required placeholder="e.g. 3 LinkedIn post ideas on SQL JOIN mistakes" autoFocus />
+        <button type="submit" className="dx-btn dx-btn--primary" disabled={busy}>
+          <Play size={14} weight="fill" /> {busy ? 'Running…' : 'Run agent'}
+        </button>
         {err && (
-          <p className="dev__err" role="alert">
+          <p className="dx-err" role="alert">
             {err}
           </p>
         )}
         {res && (
-          <div className="dev__out" aria-live="polite">
-            <p className="dev__meta">
-              {res.engine} · {res.model} · {res.inputTokens ?? '?'} in / {res.outputTokens ?? '?'} out tokens · {(res.latencyMs / 1000).toFixed(1)}s
+          <div className="dx-out" aria-live="polite">
+            <p className="dx-mono dx-dim">
+              {res.engine} · {res.model} · {res.inputTokens ?? '?'}→{res.outputTokens ?? '?'} tok · {(res.latencyMs / 1000).toFixed(1)}s
             </p>
             <pre>{res.text}</pre>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, flexWrap: 'wrap' }}>
-              <GlassButton size="sm" variant="secondary" onClick={() => navigator.clipboard?.writeText(res.text)}>
-                Copy
-              </GlassButton>
-              <GlassButton size="sm" variant="secondary" icon={<Brain size={18} />} onClick={saveToBrain}>
-                Save to Brain
-              </GlassButton>
-              {saved && <span className="dev__meta">{saved}</span>}
+            <div className="dx-row">
+              <button type="button" className="dx-btn" onClick={() => navigator.clipboard?.writeText(res.text)}>
+                <CopySimple size={14} /> Copy
+              </button>
+              <button type="button" className="dx-btn" onClick={saveToBrain}>
+                <Brain size={14} /> Save to Brain
+              </button>
+              {saved && <span className="dx-mono dx-dim">{saved}</span>}
             </div>
           </div>
         )}
