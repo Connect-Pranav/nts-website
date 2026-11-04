@@ -15,7 +15,7 @@ export function FeaturePillars() {
       <ol className="pillars__box glass">
         {PILLARS.map(({ title, text, icon: I }) => (
           <li key={title} className="pillar">
-            <I className="pillar__icon" size={58} weight="light" aria-hidden="true" />
+            <I className="pillar__icon" size={46} weight="light" aria-hidden="true" />
             <div>
               <h2 className="pillar__title">{title}</h2>
               <p className="pillar__text">{text}</p>

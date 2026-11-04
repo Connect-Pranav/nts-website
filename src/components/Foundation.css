@@ -19,7 +19,7 @@
 .fnd p {
   margin-top: 12px;
   color: var(--text);
-  font-size: clamp(16px, 1.25vw, 19px);
+  font-size: clamp(16px, 1.05vw, 17.48px);
   line-height: 1.5;
 }
 .fnd__vision {
@@ -34,7 +34,7 @@
     var(--glass);
 }
 .fnd__vision .fnd__big {
-  font: 700 clamp(28px, 3vw, 46px) / 1.12 var(--font-display);
+  font: 700 clamp(22.96px, 2.52vw, 37.72px) / 1.12 var(--font-display);
   letter-spacing: -0.02em;
 }
 .fnd__card {
@@ -49,7 +49,7 @@
 .fnd__north h3 {
   text-transform: none;
   letter-spacing: 0;
-  font-size: 18px;
+  font-size: 16.56px;
   color: var(--text);
 }
 .fnd__north p {
@@ -68,7 +68,7 @@
   padding: 22px 22px 0 0;
 }
 .vals h3 {
-  font: 600 18px/1.25 var(--font-display);
+  font: 600 16.56px/1.25 var(--font-display);
 }
 .vals h3::before {
   content: '';

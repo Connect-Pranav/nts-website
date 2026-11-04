@@ -26,7 +26,7 @@ export function ExploreCards() {
         {CARDS.map(({ title, text, href, icon: I }) => (
           <li key={title}>
             <a className="ecard glass" href={href} onClick={onLinkClick}>
-              <I className="ecard__icon" size={58} weight="light" aria-hidden="true" />
+              <I className="ecard__icon" size={46} weight="light" aria-hidden="true" />
               <span className="ecard__body">
                 <span className="ecard__title">{title}</span>
                 <span className="ecard__text">{text}</span>

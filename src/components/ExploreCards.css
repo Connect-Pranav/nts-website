@@ -35,7 +35,7 @@
   gap: clamp(16px, 3vw, 56px);
   width: 100%;
   justify-content: center;
-  font: 700 clamp(26px, 2.5vw, 38px) / 1.2 var(--font-display);
+  font: 700 clamp(21.32px, 2.1vw, 31.16px) / 1.2 var(--font-display);
   letter-spacing: -0.01em;
   text-align: center;
 }
@@ -84,15 +84,15 @@
   gap: 6px;
 }
 .ecard__title {
-  font: 600 clamp(19px, 1.6vw, 24px) / 1.2 var(--font-display);
+  font: 600 clamp(17.48px, 1.34vw, 19.68px) / 1.2 var(--font-display);
 }
 .ecard__text {
-  font-size: clamp(14px, 1.1vw, 17px);
+  font-size: clamp(14px, 0.92vw, 15.64px);
   opacity: 0.86;
 }
 .ecard__arrow {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
   border-radius: 50%;
   display: grid;
@@ -124,7 +124,7 @@
 }
 @media (max-width: 560px) {
   .explore__title {
-    font-size: 23px;
+    font-size: 21.16px;
   }
   .explore__title::before,
   .explore__title::after {
@@ -145,5 +145,14 @@
   }
   .ecard__text {
     white-space: nowrap;
+  }
+}
+@media (max-width: 560px) {
+  .ecard__title {
+    font-size: 17px;
+  }
+  .ecard__icon {
+    width: 36px;
+    height: 36px;
   }
 }

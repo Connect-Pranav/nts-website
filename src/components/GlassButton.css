@@ -1,14 +1,14 @@
 .gbtn {
-  --h: 54px;
+  --h: 48px;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   height: var(--h);
-  padding: 0 30px;
+  padding: 0 24px;
   border-radius: var(--radius-pill);
-  font: 600 17px/1 var(--font-display);
+  font: 600 15.64px/1 var(--font-display);
   letter-spacing: 0;
   white-space: nowrap;
   cursor: pointer;
@@ -22,7 +22,7 @@
   will-change: transform;
 }
 .gbtn--sm {
-  --h: 44px;
+  --h: 40px;
   padding: 0 20px;
   font-size: 15px;
 }

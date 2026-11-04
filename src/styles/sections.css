@@ -12,7 +12,7 @@
   padding: 0 clamp(16px, 4vw, 48px);
 }
 .sec__title {
-  font: 700 clamp(28px, 3vw, 44px) / 1.15 var(--font-display);
+  font: 700 clamp(22.96px, 2.52vw, 36.08px) / 1.15 var(--font-display);
   letter-spacing: -0.015em;
 }
 .sec__title em {
@@ -23,7 +23,7 @@
   margin-top: 12px;
   max-width: 62ch;
   color: var(--text-2);
-  font-size: clamp(16px, 1.25vw, 19px);
+  font-size: clamp(16px, 1.05vw, 17.48px);
 }
 .sec__body {
   margin-top: clamp(24px, 3vw, 40px);
@@ -50,7 +50,7 @@
 }
 .phero__title {
   margin-top: 18px;
-  font: 700 clamp(38px, 5.2vw, 72px) / 1.05 var(--font-display);
+  font: 700 clamp(31.16px, 4.37vw, 59.04px) / 1.05 var(--font-display);
   letter-spacing: -0.02em;
   max-width: 18ch;
 }
@@ -64,7 +64,7 @@
 .phero__lead {
   margin-top: 18px;
   max-width: 58ch;
-  font-size: clamp(17px, 1.4vw, 21px);
+  font-size: clamp(15.64px, 1.18vw, 19.32px);
   color: var(--text-2);
 }
 .phero__ctas {
@@ -115,7 +115,7 @@
   transition: transform var(--t) var(--ease), border-color var(--t) var(--ease);
 }
 .card h3 {
-  font: 600 clamp(18px, 1.4vw, 22px) / 1.25 var(--font-display);
+  font: 600 clamp(16.56px, 1.18vw, 20.24px) / 1.25 var(--font-display);
 }
 .card p {
   margin-top: 8px;
@@ -153,11 +153,11 @@
   }
 }
 .panel h3 {
-  font: 700 clamp(24px, 2.4vw, 34px) / 1.15 var(--font-display);
+  font: 700 clamp(19.68px, 2.02vw, 27.88px) / 1.15 var(--font-display);
 }
 .panel .promise {
   margin-top: 10px;
-  font-size: 18px;
+  font-size: 16.56px;
   color: var(--text-2);
 }
 .status {
@@ -315,7 +315,7 @@
   border-radius: 18px;
 }
 .row h3 {
-  font: 600 18px/1.25 var(--font-display);
+  font: 600 16.56px/1.25 var(--font-display);
 }
 .row p {
   color: var(--text-2);
@@ -348,7 +348,7 @@
     var(--glass);
 }
 .band h2 {
-  font: 700 clamp(24px, 2.6vw, 38px) / 1.2 var(--font-display);
+  font: 700 clamp(19.68px, 2.18vw, 31.16px) / 1.2 var(--font-display);
   max-width: 22ch;
 }
 .band p {
@@ -356,7 +356,7 @@
   color: var(--text-2);
 }
 .panel .card h3 {
-  font: 600 17px/1.3 var(--font-display);
+  font: 600 15.64px/1.3 var(--font-display);
 }
 .panel .card p {
   font-size: 14.5px;
@@ -366,6 +366,22 @@
 }
 .about__thesis {
   max-width: 70ch;
-  font: 500 clamp(18px, 1.6vw, 24px) / 1.5 var(--font-display);
+  font: 500 clamp(16.56px, 1.34vw, 19.68px) / 1.5 var(--font-display);
   color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .sec__title {
+    font-size: 24px;
+  }
+  .phero__title {
+    font-size: 30px;
+  }
+  .phero__lead,
+  .sec__lead {
+    font-size: 15.5px;
+  }
+  .about__thesis {
+    font-size: 17px;
+  }
 }

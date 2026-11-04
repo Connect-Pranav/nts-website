@@ -13,7 +13,7 @@
   gap: 10px;
 }
 .dev__gate h1 {
-  font: 700 32px/1.1 var(--font-display);
+  font: 700 26.24px/1.1 var(--font-display);
 }
 .dev__gate p {
   color: var(--text-2);
@@ -120,7 +120,7 @@
   align-items: flex-start;
 }
 .dev__agent h2 {
-  font: 700 18px/1.2 var(--font-display);
+  font: 700 16.56px/1.2 var(--font-display);
 }
 .dev__role {
   color: var(--text-2);
@@ -205,7 +205,7 @@
   gap: 8px;
 }
 .dev__run h2 {
-  font: 700 22px/1.2 var(--font-display);
+  font: 700 20.24px/1.2 var(--font-display);
   padding-right: 40px;
 }
 .dev__run h2 span {
@@ -391,7 +391,7 @@
   gap: 12px;
 }
 .dbrain__col h2 {
-  font: 700 20px/1.2 var(--font-display);
+  font: 700 18.4px/1.2 var(--font-display);
 }
 .dbrain__hint {
   font-size: 14px;
