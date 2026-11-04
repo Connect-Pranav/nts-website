@@ -13,7 +13,6 @@ export function loadYouTube(): Promise<YtData | null> {
       .then((r) => (r.ok ? r.json() : null))
       .then((d: YtData | null) => {
         if (!d || !d.channel || !Array.isArray(d.videos)) return null;
-        if (!/^[A-Za-z0-9_-]{10,40}$/.test(d.channel.uploadsPlaylistId)) return null;
         return { channel: d.channel, videos: d.videos.filter((v) => ID.test(v.id)) };
       })
       .catch(() => null);

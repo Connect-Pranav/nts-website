@@ -19,10 +19,32 @@ test('returns latest upload from the channel handle', async () => {
   assert.deepEqual(seen, ['@NikhilsTechStudio']);
 });
 
-test('no key -> no video, clear reason', async () => {
-  const r = await latestVideo({});
-  assert.equal(r.videoId, null);
-  assert.match(r.reason, /YOUTUBE_API_KEY/);
+test('no key -> reads the public channel page + RSS feed', async () => {
+  const { channelVideos } = await import('../site.mjs');
+  const calls = [];
+  const f = async (u) => {
+    const url = String(u);
+    calls.push(url);
+    if (url === 'https://www.youtube.com/%40NikhilsTechStudio')
+      return new Response('<html><link rel="canonical" href="https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv"></html>');
+    if (url.startsWith('https://www.youtube.com/feeds/videos.xml?channel_id=UCabcdefghijklmnopqrstuv'))
+      return new Response(`<feed><title>NikhilsTechStudio</title>
+<entry><yt:videoId>AbCdEfGhIjK</yt:videoId><title>SQL Interview : FAANG | Retained Users &amp; the Join Trap</title><published>2026-11-04T06:00:00+00:00</published><media:thumbnail url="https://i.ytimg.com/vi/AbCdEfGhIjK/hqdefault.jpg" width="480" height="360"/></entry>
+<entry><yt:videoId>ZyXwVuTsRqP</yt:videoId><title>Anti Join</title><published>2026-11-02T06:00:00+00:00</published></entry></feed>`);
+    return new Response('nope', { status: 404 });
+  };
+  const d = await channelVideos({}, f);
+  assert.equal(d.source, 'rss');
+  assert.equal(d.channel.uploadsPlaylistId, 'UUabcdefghijklmnopqrstuv');
+  assert.deepEqual(d.videos.map((v) => v.id), ['AbCdEfGhIjK', 'ZyXwVuTsRqP']);
+  assert.equal(d.videos[0].title, 'SQL Interview : FAANG | Retained Users & the Join Trap');
+  const v = await latestVideo({}, f);
+  assert.equal(v.videoId, 'AbCdEfGhIjK');
+});
+
+test('YOUTUBE_CHANNEL_ID skips the channel-page lookup', async () => {
+  const { resolveChannelId } = await import('../site.mjs');
+  assert.equal(await resolveChannelId({ YOUTUBE_CHANNEL_ID: 'UCabcdefghijklmnopqrstuv' }, () => { throw new Error('should not fetch'); }), 'UCabcdefghijklmnopqrstuv');
 });
 
 test('API error message never leaks the key', async () => {

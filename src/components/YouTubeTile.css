@@ -6,6 +6,7 @@
   gap: 16px;
 }
 .yt__tile {
+  min-width: 0;
   margin-top: clamp(20px, 2.4vw, 32px);
   border-radius: 28px;
   padding: clamp(10px, 1.2vw, 16px);
@@ -17,6 +18,7 @@
   grid-template-columns: 1fr;
 }
 .yt__player {
+  min-width: 0;
   position: relative;
   aspect-ratio: 16 / 9;
   border-radius: 20px;
@@ -131,7 +133,8 @@
     aspect-ratio: 16 / 9;
   }
 }
-.yt__tile:not(:has(.yt__list)) .yt__player {
-  aspect-ratio: 21 / 6;
-  min-height: 220px;
+@media (min-width: 700px) {
+  .yt__tile:not(:has(.yt__list)) .yt__player {
+    aspect-ratio: 21 / 7;
+  }
 }

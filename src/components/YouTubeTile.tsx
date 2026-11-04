@@ -26,10 +26,15 @@ export function YouTubeTile() {
     return () => io.disconnect();
   }, [inView]);
 
-  const list = yt?.channel?.uploadsPlaylistId;
-  const src = list
-    ? `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(list)}&index=${index}&autoplay=${reduce ? 0 : 1}&mute=1&loop=1&playsinline=1&rel=0&modestbranding=1`
-    : null;
+  // Loop the channel's videos: start at the chosen one, then play the rest in order, then repeat.
+  const ids = yt?.videos.map((v) => v.id) ?? [];
+  const order = ids.length ? [...ids.slice(index), ...ids.slice(0, index)] : [];
+  const params = `autoplay=${reduce ? 0 : 1}&mute=1&loop=1&playsinline=1&rel=0&modestbranding=1`;
+  const src = order.length
+    ? `https://www.youtube-nocookie.com/embed/${order[0]}?playlist=${order.join(',')}&${params}`
+    : yt?.channel?.uploadsPlaylistId
+      ? `https://www.youtube-nocookie.com/embed/videoseries?list=${encodeURIComponent(yt.channel.uploadsPlaylistId)}&${params}`
+      : null;
 
   return (
     <section className="sec yt" aria-labelledby="yt-title">
