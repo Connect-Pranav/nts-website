@@ -2,6 +2,7 @@
 // GET /api/public/intro -> latest video from the YouTube channel (YouTube Data API v3, free key).
 // Cached for 6 hours at the edge, so the daily API quota is barely touched.
 import { json } from './util.mjs';
+import * as dev from './dev.mjs';
 
 const CACHE_SECONDS = 6 * 3600;
 
@@ -43,6 +44,13 @@ export default {
       const res = json(body, 200, { 'cache-control': `public, max-age=${CACHE_SECONDS}` });
       if (body.videoId) ctx.waitUntil(cache.put(cacheKey, res.clone()));
       return res;
+    }
+    if (url.pathname.startsWith('/api/dev/')) {
+      try {
+        return await dev.handle(env, request, url);
+      } catch (e) {
+        return json({ error: e.status ? e.message : 'Something went wrong.' }, e.status || 500);
+      }
     }
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
     return env.ASSETS.fetch(request);

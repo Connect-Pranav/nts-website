@@ -4,7 +4,24 @@ import { Footer } from './components/Footer';
 import { SearchDialog } from './components/SearchDialog';
 import { VideoModal } from './components/VideoModal';
 import { Home } from './pages/Home';
-import { PAGES, SimplePage } from './pages/SimplePage';
+import { NotFound } from './pages/SimplePage';
+import { About } from './pages/About';
+import { Academy } from './pages/Academy';
+import { Lab } from './pages/Lab';
+import { Media } from './pages/Media';
+import { Insights } from './pages/Insights';
+import { Contact } from './pages/Contact';
+import { Dev } from './pages/Dev';
+
+const ROUTES: Record<string, { title: string; render: () => JSX.Element }> = {
+  '/about': { title: 'About', render: () => <About /> },
+  '/lab': { title: 'AI Lab', render: () => <Lab /> },
+  '/academy': { title: 'Academy', render: () => <Academy /> },
+  '/insights': { title: 'Insights', render: () => <Insights /> },
+  '/media': { title: 'Media Hub', render: () => <Media /> },
+  '/contact': { title: 'Get started', render: () => <Contact /> },
+  '/dev': { title: 'Dev Mode', render: () => <Dev /> },
+};
 import { SITE } from './config';
 import { usePath } from './lib/router';
 import { useTheme } from './lib/theme';
@@ -29,7 +46,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const page = PAGES[path];
+    const page = ROUTES[path];
     document.title = path === '/' ? `${SITE.name} | ${SITE.positioning}` : `${page?.title ?? 'Page not found'} | ${SITE.name}`;
     const hash = window.location.hash.slice(1);
     if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView());
@@ -76,7 +93,7 @@ export function App() {
       </div>
       <Header path={path} theme={theme} onToggleTheme={toggle} onOpenSearch={() => setSearchOpen(true)} />
       <main id="main" tabIndex={-1}>
-        {path === '/' ? <Home onWatchIntro={watchIntro} /> : <SimplePage path={path} />}
+        {path === '/' ? <Home onWatchIntro={watchIntro} /> : ROUTES[path] ? ROUTES[path].render() : <NotFound />}
       </main>
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />

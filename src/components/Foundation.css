@@ -1,0 +1,113 @@
+.fnd {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-areas:
+    'vision mission position'
+    'vision north north';
+  gap: clamp(14px, 1.6vw, 24px);
+}
+.fnd > * {
+  border-radius: var(--radius-card);
+  padding: clamp(22px, 2.4vw, 34px);
+}
+.fnd h3 {
+  font: 600 14px/1 var(--font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mint);
+}
+.fnd p {
+  margin-top: 12px;
+  color: var(--text);
+  font-size: clamp(16px, 1.25vw, 19px);
+  line-height: 1.5;
+}
+.fnd__vision {
+  grid-area: vision;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 320px;
+  background:
+    radial-gradient(90% 70% at 90% 0%, rgba(0, 214, 181, 0.28), transparent 65%),
+    linear-gradient(140deg, var(--glass-highlight), transparent 60%),
+    var(--glass);
+}
+.fnd__vision .fnd__big {
+  font: 700 clamp(28px, 3vw, 46px) / 1.12 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.fnd__card:nth-of-type(2) {
+  grid-area: mission;
+}
+.fnd__card:nth-of-type(3) {
+  grid-area: position;
+}
+.fnd__north {
+  grid-area: north;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.fnd__north h3 {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 18px;
+  color: var(--text);
+}
+.fnd__north p {
+  color: var(--text-2);
+  font-size: 16px;
+}
+.vals {
+  list-style: none;
+  margin: clamp(18px, 2vw, 28px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid var(--glass-border);
+}
+.vals li {
+  padding: 22px 22px 0 0;
+}
+.vals h3 {
+  font: 600 18px/1.25 var(--font-display);
+}
+.vals h3::before {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  margin-bottom: 14px;
+  background: linear-gradient(90deg, var(--emerald), var(--mint));
+}
+.vals p {
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 15px;
+}
+@media (max-width: 1000px) {
+  .fnd {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'vision vision'
+      'mission position'
+      'north north';
+  }
+  .fnd__vision {
+    min-height: 220px;
+  }
+  .vals {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .fnd {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'vision' 'mission' 'position' 'north';
+  }
+  .vals {
+    grid-template-columns: 1fr;
+  }
+}

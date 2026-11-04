@@ -1,6 +1,7 @@
 @import '@fontsource-variable/montserrat';
 @import '@fontsource-variable/geist';
 @import './tokens.css';
+@import './sections.css';
 
 *,
 *::before,
