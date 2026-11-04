@@ -5,8 +5,9 @@ export const SITE = {
   tagline: 'Learn. Practice. Simulate. Grow.',
   mission: 'Turn free content into practice, practice into proof, and proof into careers.',
   /**
-   * YouTube video ID used by "Watch Intro" (the part after v= in a YouTube link).
-   * Leave empty to open the YouTube channel instead.
+   * Optional fixed YouTube video ID for "Watch Intro" (the part after v= in a YouTube link).
+   * Leave empty to play the channel's latest upload (fetched by the Worker with YOUTUBE_API_KEY).
+   * If neither is available, the button opens the YouTube channel.
    */
   introVideoId: '',
   social: {

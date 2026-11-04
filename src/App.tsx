@@ -35,10 +35,26 @@ export function App() {
     if (hash) requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView());
   }, [path]);
 
-  const watchIntro = useCallback(() => {
-    if (SITE.introVideoId) setVideoOpen(true);
-    else window.open(SITE.social.youtube, '_blank', 'noopener,noreferrer');
+  // Intro video: a fixed ID from config, otherwise the channel's latest upload (fetched by the Worker).
+  const [introId, setIntroId] = useState<string>(SITE.introVideoId);
+  useEffect(() => {
+    if (SITE.introVideoId) return;
+    let alive = true;
+    fetch('/api/public/intro')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { videoId?: string | null } | null) => {
+        if (alive && d?.videoId && /^[A-Za-z0-9_-]{11}$/.test(d.videoId)) setIntroId(d.videoId);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
   }, []);
+
+  const watchIntro = useCallback(() => {
+    if (introId) setVideoOpen(true);
+    else window.open(SITE.social.youtube, '_blank', 'noopener,noreferrer');
+  }, [introId]);
 
   return (
     <>
@@ -64,7 +80,7 @@ export function App() {
       </main>
       <Footer />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {SITE.introVideoId && <VideoModal videoId={SITE.introVideoId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
+      {introId && <VideoModal videoId={introId} open={videoOpen} onClose={() => setVideoOpen(false)} />}
     </>
   );
 }

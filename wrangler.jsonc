@@ -1,10 +1,18 @@
 {
-  // Phase 2 (homepage): static site on Cloudflare Workers, free tier. SPA fallback for client routes.
-  // The /api backend (worker/*.mjs, D1 "nts") is wired in the next phase.
+  // NTS public site on Cloudflare Workers (free tier): static assets + /api/public/* (worker/site.mjs).
+  // Secret (set with `npx wrangler secret put YOUTUBE_API_KEY`): YOUTUBE_API_KEY. Never commit it.
   "name": "nts",
+  "main": "worker/site.mjs",
   "compatibility_date": "2026-10-01",
+  "keep_vars": true,
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "YOUTUBE_HANDLE": "@NikhilsTechStudio"
+  },
+  "observability": { "enabled": true }
 }
