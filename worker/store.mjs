@@ -13,6 +13,9 @@ export const SETTINGS = {
   SARVAM_API_KEY: { label: 'Sarvam AI key (dashboard.sarvam.ai) - natural Indian voice for Marg, paid per character after sign-up credits', secret: true, check: (v) => /^[A-Za-z0-9._-]{16,200}$/.test(v) || 'looks incomplete. Copy the whole key from dashboard.sarvam.ai' },
   MARG_SARVAM_SPEAKER: { label: 'Marg voice (optional, default shubh): shubh, priya, simran, ishita, ritu, kavya or shreya', secret: false, check: (v) => /^(shubh|priya|simran|ishita|ritu|kavya|shreya)$/.test(v) || 'must be one of shubh, priya, simran, ishita, ritu, kavya, shreya' },
   MARG_TTS_DAILY_CHARS: { label: 'Sarvam daily character limit (optional, default 5000)', secret: false, check: (v) => (/^\d{1,6}$/.test(v) && Number(v) <= 200000) || 'must be a whole number up to 200000' },
+  GITHUB_TOKEN: { label: 'GitHub token (optional) - fine-grained, this repo only: Contents read, Actions read/write. For Deployments and Run tests', secret: true, check: (v) => /^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(v) || 'should start with github_pat_ (fine-grained token)' },
+  GITHUB_REPO: { label: 'GitHub repo (optional, default Connect-Pranav/nts-website)', secret: false, check: (v) => /^[\w.-]+\/[\w.-]+$/.test(v) || 'must look like owner/repo' },
+  MCP_TOKEN: { label: 'MCP token (optional) - separate token for Claude Code; otherwise the Dev token is used', secret: true, check: (v) => /^[\x21-\x7e]{16,200}$/.test(v) || 'at least 16 characters, no spaces' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };
@@ -123,6 +126,7 @@ export const DEFAULT_RULES = [
   'Nothing is posted or sent without owner approval.',
 ];
 const MAX_RULES = 30;
+export const MEMORY_CATEGORIES = ['organization', 'brand', 'project', 'decision', 'execution', 'customer'];
 const MAX_FEEDBACK = 20;
 
 const MAX_KNOWLEDGE = 12000;
@@ -190,7 +194,8 @@ export async function addNote(env, body) {
   if (text.length < 3) throw new HttpError(400, 'Note is empty.');
   if (text.length > MAX_NOTE) throw new HttpError(400, `Notes are limited to ${MAX_NOTE} characters.`);
   const b = await getBrain(env);
-  b.notes.unshift({ id: newId('note'), title: title || text.slice(0, 60), text, source: String(body?.source ?? 'manual').slice(0, 60), createdAt: nowIso() });
+  const category = MEMORY_CATEGORIES.includes(body?.category) ? body.category : /approved/i.test(String(body?.source)) ? 'execution' : 'organization';
+  b.notes.unshift({ id: newId('note'), title: title || text.slice(0, 60), text, category, source: String(body?.source ?? 'manual').slice(0, 60), createdAt: nowIso() });
   b.notes = b.notes.slice(0, MAX_NOTES);
   return putBrain(env, b);
 }
@@ -213,4 +218,24 @@ export async function brainContext(env) {
   const rules = b.rules.length ? `\n\nOWNER RULES (must follow):\n- ${b.rules.join('\n- ')}` : '';
   const fb = b.feedback.length ? `\n\nRECENT OWNER FEEDBACK (learn from it: repeat what was approved, avoid what was rejected):\n- ${b.feedback.slice(0, 12).map((f) => f.text).join('\n- ')}` : '';
   return `NTS BRAIN (company knowledge, follow it):\n${b.knowledge}${rules}${fb}${notes ? `\n\nSAVED NOTES (most recent first):\n${notes}` : ''}`;
+}
+
+/** Keyword search across knowledge, rules, lessons and notes (scored, newest first on ties). */
+export async function searchMemory(env, query, limit = 8) {
+  const b = await getBrain(env);
+  const words = String(query || '').toLowerCase().split(/[^a-z0-9\u0900-\u097f]+/).filter((w) => w.length > 2);
+  const docs = [
+    ...b.notes.map((n) => ({ type: 'note', id: n.id, category: n.category || 'organization', title: n.title, text: n.text, at: n.createdAt })),
+    ...b.rules.map((r, i) => ({ type: 'rule', id: `rule_${i}`, category: 'decision', title: 'Owner rule', text: r, at: null })),
+    ...b.feedback.map((f, i) => ({ type: 'lesson', id: `lesson_${i}`, category: 'decision', title: 'Learned', text: f.text, at: f.at })),
+    ...b.knowledge.split('\n').filter((l) => l.trim()).map((l, i) => ({ type: 'knowledge', id: `k_${i}`, category: 'brand', title: 'Brain knowledge', text: l, at: b.updatedAt })),
+  ];
+  const scored = docs
+    .map((d) => {
+      const t = `${d.title} ${d.text}`.toLowerCase();
+      return { ...d, score: words.reduce((s, w) => s + (t.includes(w) ? 1 : 0), 0) };
+    })
+    .filter((d) => !words.length || d.score > 0)
+    .sort((a, b2) => b2.score - a.score || String(b2.at).localeCompare(String(a.at)));
+  return scored.slice(0, limit).map(({ score, ...d }) => ({ ...d, text: d.text.slice(0, 600), score }));
 }

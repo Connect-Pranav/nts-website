@@ -17,7 +17,7 @@ test('wrong token is rejected, right token lists every agent enabled', async () 
   const r = await site.fetch(req('/api/dev/agents', { token: TOKEN }), env, {});
   assert.equal(r.status, 200);
   const d = await r.json();
-  assert.deepEqual(d.agents.map((a) => a.name), ['LinkedIn Content Writer', 'Social Media Manager', 'Growth & Analytics']);
+  assert.deepEqual(d.agents.map((a) => a.name), ['LinkedIn Content Writer', 'Social Media Manager', 'Growth & Analytics', 'Lead Response', 'Community Manager', 'DevOps']);
   assert.ok(d.agents.every((a) => a.enabled));
   assert.ok(!d.agents.some((a) => /sunverse|littleloop|foliocraft/i.test(a.id)));
 });

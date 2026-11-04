@@ -1,8 +1,13 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Brain, ChartLineUp, CopySimple, GearSix, Kanban, LockKey, Moon, Play, Robot, SignOut, Sun, X } from '@phosphor-icons/react';
+import { ArrowSquareOut, Bell, Brain, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, LockKey, Moon, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
 import { AnalyticsPanel, SignalsPanel } from './DevInsights';
+import { OverviewPage } from './command/Overview';
+import { BrainPage } from './command/BrainPage';
+import { AgentsPage, ApprovalsPage, DeployPage, LeadsPage, LinkedInPage, MemorySearch, SocialPage, TasksBoard } from './command/Pages';
+import type { Page } from './command/shared';
+import './command/command.css';
 import { Assistant } from '../components/Assistant';
 import { navigate } from '../lib/router';
 import { downloadMarkdown, downloadPdf } from '../lib/download';
@@ -11,10 +16,9 @@ import './Dev.css';
 type Agent = { id: string; name: string; role: string; mission: string; enabled: boolean };
 type Engines = Record<string, { configured: boolean; model: string }>;
 type RunResult = { text: string; engine: string; model: string; inputTokens: number | null; outputTokens: number | null; latencyMs: number };
-type Tab = 'work' | 'analytics' | 'agents' | 'brain' | 'settings';
+type Tab = Page;
 
 const KEY = 'nts-dev-token'; // sessionStorage only: cleared when the tab closes
-const OFF_KEY = 'nts-dev-off';
 
 function readToken() {
   try {
@@ -31,37 +35,50 @@ async function api<T>(token: string, path: string, init: RequestInit = {}): Prom
   return d as T;
 }
 
-const TABS: [Tab, string, typeof Robot][] = [
-  ['work', 'Work', Kanban],
-  ['analytics', 'Analytics', ChartLineUp],
-  ['agents', 'Agents', Robot],
-  ['brain', 'Brain', Brain],
-  ['settings', 'Settings', GearSix],
+const NAV: [Tab, string, typeof Robot][][] = [
+  [
+    ['overview', 'Overview', House],
+    ['brain', 'NTS Brain (MCP)', Brain],
+    ['agents', 'Agents', Robot],
+    ['work', 'Work & Tasks', Kanban],
+    ['approvals', 'Approvals', ShieldCheck],
+  ],
+  [
+    ['leads', 'Leads & CRM', UsersThree],
+    ['linkedin', 'LinkedIn Studio', LinkedinLogo],
+    ['social', 'Social Engagement', ChatsCircle],
+    ['analytics', 'Analytics', ChartLineUp],
+    ['deploy', 'Deployments', Rocket],
+  ],
+  [
+    ['memory', 'Memory', Database],
+    ['settings', 'Settings & Integrations', GearSix],
+  ],
 ];
+const TABS = NAV.flat();
+const OWNER = 'Pranav';
 
 export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggleTheme: () => void }) {
+  const [arg, setArg] = useState<string | undefined>();
+  const [collapsed, setCollapsed] = useState(false);
+  const [cmd, setCmd] = useState('');
+  const [approvals, setApprovals] = useState(0);
   const [token, setToken] = useState(readToken);
   const [input, setInput] = useState('');
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [engines, setEngines] = useState<Engines>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [off, setOff] = useState<string[]>(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem(OFF_KEY) || '[]');
-    } catch {
-      return [];
-    }
-  });
+
   const [open, setOpen] = useState<Agent | null>(null);
-  const [tab, setTab] = useState<Tab>('work');
+  const [tab, setTab] = useState<Tab>('overview');
   const bound = useCallback(<T,>(path: string, init?: RequestInit) => api<T>(token, path, init), [token]);
   const onEngines = useCallback((e: Engines) => setEngines(e), []);
 
   useEffect(() => {
     const onTab = (e: Event) => {
       const t = (e as CustomEvent<string>).detail;
-      if (t === 'work' || t === 'analytics' || t === 'agents' || t === 'brain' || t === 'settings') setTab(t);
+      if (TABS.some(([k]) => k === t)) setTab(t as Tab);
     };
     window.addEventListener('nts:devtab', onTab);
     const m = document.createElement('meta');
@@ -97,13 +114,6 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
     };
   }, [token]);
 
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(OFF_KEY, JSON.stringify(off));
-    } catch {
-      /* ignore */
-    }
-  }, [off]);
 
   function lock() {
     try {
@@ -136,6 +146,31 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
       setBusy(false);
     }
   }
+
+  const go = useCallback((p: Tab, a?: string) => {
+    setArg(a);
+    setTab(p);
+    document.getElementById('main')?.scrollTo({ top: 0 });
+  }, []);
+  useEffect(() => {
+    if (!token) return;
+    const poll = () => api<{ kpis: { approvals: number } }>(token, '/api/dev/overview').then((d) => setApprovals(d.kpis.approvals), () => {});
+    poll();
+    const t = setInterval(poll, 45_000);
+    window.addEventListener('nts:work', poll);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('nc-top-cmd')?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('nts:work', poll);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [token]);
 
   const engineList = Object.entries(engines);
   const engineReady = engineList.some(([, e]) => e.configured);
@@ -176,25 +211,30 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
     );
   }
 
-  const enabled = agents.filter((a) => !off.includes(a.id)).length;
-
   return (
-    <div className="dx">
-      <aside className="dx-side" aria-label="Dev navigation">
-        <div className="dx-side__brand">
-          <img src="/img/intro/logo.jpg" alt="" width={30} height={30} />
+    <div className={`dx nc ${collapsed ? 'is-collapsed' : ''}`}>
+      <aside className="dx-side nc-side" aria-label="NTS COMMAND navigation">
+        <div className="dx-side__brand nc-brand">
+          <img src="/img/intro/logo.jpg" alt="" width={34} height={34} />
           <span>
-            NTS <b>dev</b>
+            <span className="nc-brand__t">
+              NTS <b>dev</b>
+            </span>
+            <small>NIKHILs TECH STUDIO</small>
           </span>
         </div>
-        <nav className="dx-nav" role="tablist" aria-label="Dev sections">
-          {TABS.map(([k, label, I]) => (
-            <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-              <I size={18} aria-hidden="true" />
-              <span>{label}</span>
-              {k === 'agents' && <small>{enabled}</small>}
-              {k === 'settings' && !engineReady && <i className="dx-dot dx-dot--bad" aria-label="needs setup" />}
-            </button>
+        <nav className="dx-nav nc-nav" role="tablist" aria-label="Sections">
+          {NAV.map((group, gi) => (
+            <div key={gi} className="nc-nav__g">
+              {group.map(([k, label, I]) => (
+                <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => go(k)} title={label}>
+                  <I size={19} aria-hidden="true" />
+                  <span>{label}</span>
+                  {k === 'approvals' && approvals > 0 && <small className="nc-badge">{approvals}</small>}
+                  {k === 'settings' && !engineReady && <i className="dx-dot dx-dot--bad" aria-label="needs setup" />}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="dx-side__foot">
@@ -215,52 +255,79 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           <button type="button" className="dx-side__act" onClick={lock}>
             <SignOut size={16} /> <span>Lock</span>
           </button>
+          <button type="button" className="dx-side__act nc-collapse" onClick={() => setCollapsed((c) => !c)} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            <CaretLeft size={16} /> <span>Collapse</span>
+          </button>
         </div>
       </aside>
 
-      <main className="dx-main" id="main" tabIndex={-1}>
-        <header className="dx-top">
-          <p className="dx-mono dx-dim">
-            nts / dev / <span className="dx-accent">{tab}</span>
-          </p>
-          <h1>{TABS.find(([k]) => k === tab)?.[1]}</h1>
+      <main className="dx-main nc-main" id="main" tabIndex={-1}>
+        <header className="nc-top">
+          <form
+            className="nc-top__cmd"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (cmd.trim()) {
+                go('brain', cmd.trim());
+                setCmd('');
+              }
+            }}
+          >
+            <Sparkle size={18} aria-hidden="true" />
+            <label className="sr-only" htmlFor="nc-top-cmd">
+              Ask NTS Brain
+            </label>
+            <input id="nc-top-cmd" value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder='Ask NTS Brain anything… e.g. "Create 5 LinkedIn posts for next week"' maxLength={4000} />
+            <kbd>Ctrl K</kbd>
+          </form>
+          <button type="button" className="nc-bell" onClick={() => go('approvals')} aria-label={`${approvals} approvals waiting`}>
+            <Bell size={22} />
+            {approvals > 0 && <i />}
+          </button>
+          <div className="nc-me">
+            <span className="nc-me__av" aria-hidden="true">
+              {OWNER[0]}
+            </span>
+            <span>
+              <b>{OWNER}</b>
+              <small>Owner</small>
+            </span>
+          </div>
         </header>
+        {tab !== 'overview' && (
+          <div className="dx-top nc-title">
+            <p className="dx-mono dx-dim">
+              nts / command / <span className="dx-accent">{tab}</span>
+            </p>
+            <h1>{TABS.find(([k]) => k === tab)?.[1]}</h1>
+          </div>
+        )}
 
+        {tab === 'overview' && <OverviewPage api={bound} go={go} owner={OWNER} />}
+        {tab === 'brain' && <BrainPage key={arg || 'brain'} token={token} api={bound} initial={arg} onConsumed={() => setArg(undefined)} />}
+        {tab === 'agents' && <AgentsPage api={bound} focus={arg} onRun={(a) => setOpen({ ...a, enabled: true })} />}
         {tab === 'work' && (
           <>
-            <SignalsPanel api={bound} onOpen={() => setTab('analytics')} />
+            <SignalsPanel api={bound} onOpen={() => go('analytics')} />
             <WorkPanel api={bound} ready={engineReady} />
+            <div style={{ height: 14 }} />
+            <TasksBoard api={bound} newTask={arg === 'new-task'} />
           </>
         )}
+        {tab === 'approvals' && <ApprovalsPage api={bound} go={go} />}
+        {tab === 'leads' && <LeadsPage api={bound} />}
+        {tab === 'linkedin' && <LinkedInPage api={bound} />}
+        {tab === 'social' && <SocialPage api={bound} />}
         {tab === 'analytics' && <AnalyticsPanel api={bound} />}
-        {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
-        {tab === 'brain' && <BrainPanel api={bound} />}
-        {tab === 'agents' && (
-          <ul className="dx-agents">
-            {agents.map((a) => {
-              const on = !off.includes(a.id);
-              return (
-                <li key={a.id} className={`dx-card dx-agent ${on ? '' : 'is-off'}`}>
-                  <span className="dx-agent__icon" aria-hidden="true">
-                    <Robot size={20} />
-                  </span>
-                  <div className="dx-agent__body">
-                    <p className="dx-agent__name">{a.name}</p>
-                    <p className="dx-mono dx-dim">{a.role.replace(/ agent$/i, '')}</p>
-                  </div>
-                  <label className="dx-switch">
-                    <input type="checkbox" checked={on} onChange={() => setOff((o) => (on ? [...o, a.id] : o.filter((x) => x !== a.id)))} />
-                    <span aria-hidden="true" />
-                    <span className="sr-only">{on ? `Disable ${a.name}` : `Enable ${a.name}`}</span>
-                  </label>
-                  <button type="button" className="dx-btn dx-btn--primary" disabled={!on || !engineReady} onClick={() => setOpen(a)} title={engineReady ? 'Run' : 'Add an AI key in Settings'}>
-                    <Play size={14} weight="fill" /> Run
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        {tab === 'deploy' && <DeployPage api={bound} />}
+        {tab === 'memory' && (
+          <>
+            <MemorySearch api={bound} />
+            <div style={{ height: 14 }} />
+            <BrainPanel api={bound} />
+          </>
         )}
+        {tab === 'settings' && <SettingsPanel api={bound} onEngines={onEngines} />}
       </main>
 
       {open && <RunPanel token={token} agent={open} onClose={() => setOpen(null)} />}

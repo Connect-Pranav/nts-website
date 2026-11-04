@@ -9,7 +9,7 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/mcp"]
   },
   // Dev Mode storage (settings + Brain). No id: Wrangler creates the namespace on first deploy.
   "kv_namespaces": [{ "binding": "NTS_KV" }],

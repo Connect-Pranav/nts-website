@@ -5,6 +5,7 @@ import { json } from './util.mjs';
 import * as dev from './dev.mjs';
 import * as work from './work.mjs';
 import * as analytics from './analytics.mjs';
+import { handleMcp } from './mcp.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -118,6 +119,13 @@ export default {
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/api/public/intro') return cached(url, ctx, async () => latestVideo(await withSettings(env)));
     if (request.method === 'GET' && url.pathname === '/api/public/youtube') return cached(url, ctx, async () => channelVideos(await withSettings(env)));
+    if (url.pathname === '/mcp') {
+      try {
+        return await handleMcp(await withSettings(env), request);
+      } catch (e) {
+        return json({ jsonrpc: '2.0', error: { code: -32603, message: e.status ? e.message : 'Internal error' }, id: null }, e.status || 500);
+      }
+    }
     if (url.pathname.startsWith('/api/disha/') || url.pathname.startsWith('/api/marg/')) {
       try {
         return await disha.handle(env, request, url);
@@ -127,7 +135,7 @@ export default {
     }
     if (url.pathname.startsWith('/api/dev/')) {
       try {
-        return await dev.handle(env, request, url);
+        return await dev.handle(env, request, url, ctx);
       } catch (e) {
         return json({ error: e.status ? e.message : 'Something went wrong.' }, e.status || 500);
       }

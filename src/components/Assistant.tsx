@@ -203,6 +203,12 @@ export function Assistant({ kind, token = '' }: Props) {
   useEffect(() => {
     if (open) setUnread(0);
   }, [open]);
+  useEffect(() => {
+    if (!owner) return;
+    const o = () => setOpen(true);
+    window.addEventListener('nts:openmarg', o);
+    return () => window.removeEventListener('nts:openmarg', o);
+  }, [owner]);
 
   useEffect(() => {
     if (!owner || !token) return;

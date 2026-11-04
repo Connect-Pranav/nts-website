@@ -1,0 +1,21 @@
+# Tests + build for NTS COMMAND. Runs on every push/PR and on demand (Dev Mode "Run tests" uses workflow_dispatch).
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node --test worker/test/*.test.mjs
+      - run: npm run build

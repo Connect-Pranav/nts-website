@@ -122,14 +122,38 @@ export async function scrape(env, fetchImpl = fetch) {
   return out;
 }
 
+export const STAGES = ['new', 'drafted', 'contacted', 'responded', 'qualified', 'meeting', 'won', 'lost', 'ignored'];
 export async function setLeadState(env, id, state) {
-  if (!['new', 'drafted', 'contacted', 'ignored'].includes(state)) throw new HttpError(400, 'state must be new, drafted, contacted or ignored.');
+  if (!STAGES.includes(state)) throw new HttpError(400, `state must be one of ${STAGES.join(', ')}.`);
   const s = await getSignals(env);
   const l = s.leads.find((x) => x.id === id);
   if (!l) throw new HttpError(404, 'Lead not found.');
   l.state = state;
+  (l.history = l.history || []).unshift({ state, at: nowIso() });
   await kv(env).put(KEY, JSON.stringify(s));
   return s;
+}
+
+/** Owner-added lead (an enquiry from DM, email, event...). */
+export async function addLead(env, body) {
+  const title = String(body?.title ?? '').trim().slice(0, 160);
+  const text = String(body?.text ?? '').trim().slice(0, 1500);
+  if (title.length < 2) throw new HttpError(400, 'Lead needs a name or title.');
+  const s = await getSignals(env);
+  const id = `mn_${Date.now().toString(36)}`;
+  s.leads.unshift({ id, source: String(body?.source || 'Manual').slice(0, 60), title, text, url: /^https?:\/\//.test(body?.url || '') ? body.url : '', at: nowIso(), score: score(title, text) || 5, state: 'new', foundAt: nowIso(), history: [{ state: 'new', at: nowIso() }] });
+  await kv(env).put(KEY, JSON.stringify(s));
+  return s;
+}
+
+export async function setLeadDraft(env, id, draft) {
+  const s = await getSignals(env);
+  const l = s.leads.find((x) => x.id === id);
+  if (!l) throw new HttpError(404, 'Lead not found.');
+  l.draft = { text: String(draft).slice(0, 2000), at: nowIso() };
+  if (l.state === 'new') l.state = 'drafted';
+  await kv(env).put(KEY, JSON.stringify(s));
+  return l;
 }
 
 /** Top fresh leads for the next cycle (marked drafted once used). */

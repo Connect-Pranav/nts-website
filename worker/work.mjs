@@ -7,6 +7,7 @@ import { HttpError, newId, nowIso } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
 import * as signals from './signals.mjs';
+import { countTokens, log, getOps } from './ops.mjs';
 
 const KEY = 'work';
 const MAX_ITEMS = 150;
@@ -61,6 +62,7 @@ export async function runCycle(rawEnv, { focus = '', by = 'owner' } = {}) {
     const f = String(focus || '').trim().slice(0, 300);
     if (f) user += `\n\nOWNER WANTS THIS CYCLE TO FOCUS ON: ${f}`;
     const r = await generate(env, { system: SYS, prompt: user, maxTokens: 3500, json: true });
+    await countTokens(rawEnv, r);
     const out = parseJson(r.text);
     const now = nowIso();
     const items = [];
@@ -90,10 +92,22 @@ export async function runCycle(rawEnv, { focus = '', by = 'owner' } = {}) {
     w.cycles += 1;
     w.updated = now;
     w.last = { topic: String(out.topic || '').slice(0, 80), why: String(out.why || '').slice(0, 200), summary: String(out.summary || '').slice(0, 200), count: items.length, brain: `${r.engine} · ${r.model}`, by, at: now };
+    await log(rawEnv, 'cycle', `Team cycle (${by}): "${w.last.topic}" · ${items.length} items`);
     return putWork(rawEnv, w);
   } finally {
     await store_.delete?.('work/lock');
   }
+}
+
+/** Add finished drafts to the board (used by tools such as nts_create_linkedin_post). */
+export async function addItems(env, list, brain = '') {
+  const w = await getWork(env);
+  const now = nowIso();
+  const items = list.map((it) => ({ id: newId('w'), agent: it.agent, agentName: TEAM[it.agent]?.name || it.agent, channel: CHANNELS.includes(it.channel) ? it.channel : 'All', title: String(it.title).slice(0, 100), body: String(it.body).slice(0, 2500), status: it.status === 'ready' ? 'ready' : 'waiting', topic: '', createdAt: now, brain, by: 'brain' }));
+  w.items = [...items, ...w.items].slice(0, MAX_ITEMS);
+  w.updated = now;
+  await putWork(env, w);
+  return items;
 }
 
 /** Approve or reject a waiting item. The decision becomes a lesson; approved pieces become examples. */
@@ -105,14 +119,39 @@ export async function decide(env, id, action, reason = '') {
   const why = String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 200);
   if (action === 'approve') {
     it.status = 'ready';
+    await log(env, 'approval', `Approved: ${it.title}`);
     await store.learn(env, `Approved (${it.agentName}, ${it.channel}): ${it.title}${why ? ` | note: ${why}` : ''}`);
     await store.addNote(env, { title: `Approved example: ${it.title}`.slice(0, 120), text: it.body.slice(0, 3000), source: `${it.agentName} (approved)` });
   } else {
     it.status = 'rejected';
+    await log(env, 'approval', `Rejected: ${it.title}${why ? ` (${why})` : ''}`);
     await store.learn(env, `Rejected (${it.agentName}, ${it.channel}): ${it.title}${why ? ` | reason: ${why}` : ''}`);
   }
   it.decidedAt = nowIso();
   if (why) it.reason = why;
+  return putWork(env, w);
+}
+
+/** Edit a draft, set its schedule, or record where it was posted (manual publishing). */
+export async function updateItem(env, id, b) {
+  const w = await getWork(env);
+  const it = w.items.find((i) => i.id === id);
+  if (!it) throw new HttpError(404, 'Item not found.');
+  if (typeof b?.title === 'string' && b.title.trim()) it.title = b.title.trim().slice(0, 100);
+  if (typeof b?.body === 'string' && b.body.trim()) it.body = b.body.slice(0, 2500);
+  if (b?.scheduledFor === null) delete it.scheduledFor;
+  else if (typeof b?.scheduledFor === 'string') {
+    if (Number.isNaN(Date.parse(b.scheduledFor))) throw new HttpError(400, 'scheduledFor must be a date.');
+    it.scheduledFor = new Date(b.scheduledFor).toISOString();
+  }
+  if (typeof b?.postedUrl === 'string') {
+    if (b.postedUrl && !/^https:\/\/(www\.)?(linkedin\.com|instagram\.com|youtube\.com|youtu\.be)\//.test(b.postedUrl)) throw new HttpError(400, 'postedUrl must be a LinkedIn, Instagram or YouTube link.');
+    it.postedUrl = b.postedUrl || undefined;
+    if (b.postedUrl) {
+      it.postedAt = nowIso();
+      await log(env, 'publish', `Posted (manual): ${it.title}`);
+    }
+  }
   return putWork(env, w);
 }
 
@@ -131,9 +170,11 @@ export async function setAutopilot(env, on) {
 /** Cron entry: runs a cycle only when autopilot is on and nothing is piling up unreviewed. */
 export async function scheduled(env) {
   if (!env.NTS_KV) return;
+  const o = await getOps(env);
+  if (o.paused) return; // kill switch: nothing autonomous runs
   await signals.scrape(env).catch((e) => console.log('[signals] scrape failed:', e.message));
   const w = await getWork(env);
-  if (!w.autopilot) return;
+  if (!w.autopilot || o.mode === 'manual') return; // manual mode: agents act only when instructed
   if (w.items.filter((i) => i.status === 'waiting').length >= 25) return; // wait for the owner to review
   try {
     await runCycle(env, { by: 'autopilot' });
