@@ -1,5 +1,5 @@
 // Dev Mode: token-gated access to every agent (NTS bindings + full Ganesha catalogue), all enabled.
-// Auth: Authorization: Bearer <DEV_TOKEN> (Worker secret, 24+ characters). Constant-time compare.
+// Auth: Authorization: Bearer <DEV_TOKEN> (Worker secret, 8+ characters). Constant-time compare.
 // Agents only draft text here. They cannot publish, spend money or touch any other project.
 import NTS from '../agents/registry.json' with { type: 'json' };
 import CATALOG from '../agents/ganesha-catalog.snapshot.json' with { type: 'json' };
@@ -22,7 +22,7 @@ function bump(map, key, windowMs) {
 }
 
 export function authorize(env, request) {
-  if (!env.DEV_TOKEN || env.DEV_TOKEN.length < 24) throw new HttpError(503, 'Dev mode is locked: set a DEV_TOKEN secret (24+ characters) on the Worker.');
+  if (!env.DEV_TOKEN || env.DEV_TOKEN.length < 8) throw new HttpError(503, 'Dev mode is locked: set a DEV_TOKEN secret (8+ characters) on the Worker.');
   const ip = clientIp(request);
   const f = fails.get(ip);
   if (f && f.n >= 10 && Date.now() - f.t < 15 * 60_000) throw new HttpError(429, 'Too many wrong tokens. Try again in 15 minutes.');

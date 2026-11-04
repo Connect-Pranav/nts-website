@@ -128,7 +128,7 @@ export function Dev() {
           <label htmlFor="dev-token" className="dev__label">
             Dev token
           </label>
-          <input id="dev-token" type="password" autoComplete="off" spellCheck={false} value={input} onChange={(e) => setInput(e.target.value)} required minLength={24} aria-describedby={error ? 'dev-err' : undefined} />
+          <input id="dev-token" type="password" autoComplete="off" spellCheck={false} value={input} onChange={(e) => setInput(e.target.value)} required minLength={8} aria-describedby={error ? 'dev-err' : undefined} />
           {error && (
             <p id="dev-err" className="dev__err" role="alert">
               {error}

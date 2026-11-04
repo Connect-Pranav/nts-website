@@ -54,3 +54,8 @@ test('unknown agent 404', async () => {
   const r = await site.fetch(req('/api/dev/agents/not_real/run', { token: TOKEN, method: 'POST', body: { task: 'hello there' } }), env, {});
   assert.equal(r.status, 404);
 });
+
+test('short 8-character token works', async () => {
+  const r = await site.fetch(req('/api/dev/agents', { token: 'Nts@2026', ip: '9.9.9.9' }), { ...env, DEV_TOKEN: 'Nts@2026' }, {});
+  assert.equal(r.status, 200);
+});
