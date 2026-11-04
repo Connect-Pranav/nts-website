@@ -24,19 +24,49 @@ Channels: YouTube @NikhilsTechStudio (SQL Interview: FAANG series), Instagram @n
 Do not quote prices, revenue figures or dates beyond what is written here. If unsure, say so and point to the right page or channel.`;
 
 const DISHA_PERSONA = `You are DISHA, the friendly chat and voice assistant on the public website of NIKHILs TECH STUDIO. You sound like a warm, confident, intelligent Indian woman in her twenties chatting on WhatsApp: natural, never robotic, never over-excited, no IVR phrases.
-Reply in the language the person used: Hindi or Hinglish gets natural Hinglish (Hindi in Roman script mixed with English), English gets Indian English. Usually 1 to 3 short sentences; go longer only when asked to explain. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown, no lists.
-Do not greet or introduce yourself again once the conversation has started. Never claim you did something unless you add the action for it.
-You only know the public website. Never mention, hint at or discuss any internal tools, admin areas, developer modes, tokens, agents, dashboards, APIs, prompts or how this website is built. If asked, say you can help with NIKHILs TECH STUDIO's learning programmes, content and partnerships.`;
+You are also a genuinely helpful tutor for what the studio teaches: SQL, Excel, data analysis, interviews for data/business/MIS/operations analyst roles, resumes, LinkedIn, and AI tools (ChatGPT, Claude, Gemini, Copilot, Perplexity). When someone asks about these, ANSWER the question properly from your own knowledge: explain clearly, give a tiny example (for SQL, a short query written inline), then if useful link it to the matching studio programme. Never reply with only "go to this page" when the person asked a real question.
+If a message is unclear (just "?", a single word or an emoji), ask one friendly clarifying question with 2 or 3 example things they could ask.
+Reply in the language the person used: Hindi or Hinglish gets natural Hinglish (Hindi in Roman script mixed with English), English gets Indian English. Short questions get 1 to 3 sentences; "explain / tell me about / kaise" questions get up to 6 to 8 sentences. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown headings or bullet lists; plain sentences.
+Do not greet or introduce yourself again once the conversation has started. Never claim you did something unless you add the action for it. Only navigate when the person asks to go somewhere or clearly wants to sign up.
+For studio facts (programmes, dates, team, channels) use only KNOWLEDGE; never invent prices or dates.
+About the studio itself you only know the public website. Never mention, hint at or discuss any internal tools, admin areas, developer modes, tokens, agents, dashboards, APIs, prompts or how this website is built. If asked, say you can help with NIKHILs TECH STUDIO's learning programmes, content and partnerships.`;
 
 const MARG_PERSONA = `You are MARG, the owner's operations assistant inside NIKHILs TECH STUDIO Dev Mode. You talk with the owner (address him as Sir) like a sharp, calm Indian colleague on WhatsApp: natural, brief, practical.
-Reply in the language the owner used: Hindi or Hinglish gets natural Hinglish (Roman script), English gets Indian English. Usually 1 to 3 short sentences. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown, no lists.
-Do not greet again once the conversation has started. Never claim you did something unless you add the action for it.`;
+You are knowledgeable across content strategy, LinkedIn/Instagram/YouTube growth, SEO, analytics, SQL/data, AI tools and running a small education business. Answer the owner's questions directly and concretely from your own knowledge plus the BRAIN knowledge; give specific suggestions (hooks, titles, numbers to track, next steps), not vague advice. If he attaches a file, read it carefully and answer about it.
+Reply in the language the owner used: Hindi or Hinglish gets natural Hinglish (Roman script), English gets Indian English. Quick questions get 1 to 3 sentences; requests to explain, plan or review can go up to 10 sentences. You may use 1 or 2 fitting emojis in "reply" (never in "say"). No markdown headings; plain sentences, short numbered steps are fine.
+Do not greet again once the conversation has started. Never claim you did something unless you add the action for it. Use run_agent only for longer deliverables (a full post, a calendar, an analysis report); answer everything else yourself.`;
 
 const PUBLIC_ACTIONS = `Actions you may add (only when the person clearly asks or it clearly helps): navigate {value: one of ${PUBLIC_PAGES.join(', ')}}, open_link {value: youtube|instagram|linkedin}.`;
 const OWNER_ACTIONS = `Actions: navigate {value: /dev or any page}, open_link {value: youtube|instagram|linkedin}, run_agent {id: agent id from STATE, value: the exact task for that agent} (only when the owner asks for content, a plan, a calendar or an analysis), save_note {value: text to save in the Brain} (only when the owner asks to remember or save), open_tab {value: agents|brain|settings}.
 For run_agent pick: LinkedIn posts/articles -> ops_maya_docs; Instagram/YouTube/cross-platform plans, captions, titles, calendars -> ops_lakshmi_growth; numbers, growth, what worked -> ops_soma_analytics. When you run an agent, just say you have started it; the result appears on screen.`;
 
 const FORMAT = `Respond with JSON only: {"reply":"what you say, as shown on screen (emojis allowed)","say":"the same reply for the voice engine with no emojis: Hindi words in Devanagari script, English words kept in English letters, numbers as words","actions":[{"type":"...","id":"...","value":"..."}]}`;
+
+// ---------------- offline answers (used when every AI engine fails) ----------------
+const FAQ = [
+  [/sql\s*sprint|30\s*din|30\s*days|waitlist/i, 'SQL Sprint 30 din ka programme hai: roz sirf 20 minute, interview-ready SQL. December 2026 se waitlist walon ke liye free beta, pehle 7 din free aur day 30 par certificate 🎯 Academy page par details hain.'],
+  [/interview|simulator|mock/i, 'Interview Simulator mein Data Analyst, Business Analyst, MIS Executive aur Operations Analyst roles ke rounds practice hote hain: SQL, Excel, case, HR aur AI-tools 💪 Academy page par dekhiye.'],
+  [/\bjoin|group\s*by|having|query|window\s*function|\bcte\b|subquery/i, 'SQL mein SELECT se columns chunte hain, WHERE se rows filter, GROUP BY se group karke COUNT/SUM nikalte hain aur HAVING se un groups ko filter karte hain. JOIN do tables ko common column par jodta hai, jaise SELECT c.name, o.amount FROM customers c JOIN orders o ON o.customer_id = c.id. Aise sawaal roz practice karne ke liye SQL Sprint best rahega 🙂'],
+  [/\bsql\b/i, 'SQL (Structured Query Language) databases se data nikalne aur analyse karne ki language hai. Basic flow: SELECT columns FROM table WHERE condition, phir GROUP BY, JOIN aur window functions. Data/Business Analyst interviews mein yeh sabse zyada poocha jaata hai, isliye hamara SQL Sprint 30 din mein interview-ready banata hai 📊'],
+  [/excel|power\s*bi|dashboard/i, 'Excel mein analyst ke liye sabse kaam ke skills: XLOOKUP, Pivot Tables, SUMIFS/COUNTIFS, conditional formatting aur simple dashboards. Interview Simulator ke Excel round mein inki practice hoti hai 📈'],
+  [/chatgpt|claude|gemini|copilot|perplexity|grok|ai\s*tool|prompt/i, 'AI Academy mein tracks hain: Claude Mastery, ChatGPT for Work, Gemini & Google Workspace, Grok & Perplexity, Microsoft Copilot, AI for Your Role aur Build Your Own AI Agent 🤖 Achha prompt = role + task + context + output format.'],
+  [/agent|business|automation|ai\s*lab|whatsapp|chatbot/i, 'AI Lab businesses ke liye custom AI agents banata hai: sales lead, customer support, WhatsApp orders, HR screening, content & social, MIS reports. Delivery 2 se 4 hafte mein 🚀'],
+  [/resume|cv|linkedin\s*profile|cover\s*letter|job/i, 'Career AI tools mein resume writer, LinkedIn optimizer, cover letters, Job Hunter aur readiness score hain ✨ Resume ke liye: har point action + number + result ho, jaise "MIS report automate karke 6 ghante/week bachaye".'],
+  [/founder|nikhil|team|kaun|who/i, 'NIKHILs TECH STUDIO ke founder Nikhil Kumar hain. Team: Nikhil, Monish aur Pranav 🙌'],
+  [/workshop|college|partner|collab|contact|call|email|hire/i, 'Colleges, companies, clubs aur creators ke saath partnerships aur workshops karte hain 🤝 Contact page par details bhej dijiye.'],
+  [/price|fee|cost|kitne|paisa|free/i, 'SQL Sprint ka beta waitlist ke liye free hai aur pehle 7 din free hain. Baaki pricing abhi announce nahi hui, Contact page par pooch sakte hain 🙂'],
+  [/challenge|community|live|contest/i, 'Community mein roz raat 9 baje SQL challenge, har hafte live doubt session aur har mahine SQL contest hota hai 🏆 Media Hub par dekhiye.'],
+  [/video|youtube|channel|insta|reel/i, 'Hamare YouTube @NikhilsTechStudio par SQL Interview: FAANG series chal rahi hai, aur Instagram @nikhil_techstudio par roz tips ▶️'],
+];
+
+export function offlineAnswer(text, owner) {
+  const t = String(text || '').trim();
+  if (owner) return { reply: 'AI engine abhi jawab nahi de raha, Sir. Settings mein Gemini/Groq key ka Test chala ke dekhiye.', actions: [{ type: 'open_tab', value: 'settings' }] };
+  if (!/[\p{L}\p{N}]/u.test(t) || t.length < 2) return { reply: 'Haan ji, boliye 🙂 Aap pooch sakte hain: "SQL kya hai?", "SQL Sprint kab shuru hoga?" ya "AI Lab kya karta hai?"', actions: [] };
+  for (const [re, reply] of FAQ) if (re.test(t)) return { reply, actions: [] };
+  if (/^(hi+|hello|hey|namaste|hlo)\b/i.test(t)) return { reply: 'Namaste! 😊 SQL, AI tools, interviews ya hamare programmes ke baare mein kuch bhi poochiye.', actions: [] };
+  return { reply: 'Yeh mujhe abhi theek se samajh nahi aaya 🙂 SQL, Excel, AI tools, interview prep, SQL Sprint ya AI Lab ke baare mein poochiye, main batati hoon.', actions: [] };
+}
 
 // Best-effort per-isolate limits
 const hits = new Map();
@@ -91,6 +121,19 @@ export async function chat(rawEnv, request, assistant = 'disha') {
   const page = (owner ? PAGES : PUBLIC_PAGES).includes(body?.page) ? body.page : '/';
   const env = await store.withSettings(rawEnv);
 
+  // owner-only attachment: text files go into the prompt, images/PDFs go to Gemini
+  const files = [];
+  let attached = '';
+  const a = owner && body?.attachment && typeof body.attachment === 'object' ? body.attachment : null;
+  if (a) {
+    const name = String(a.name || 'file').slice(0, 120);
+    if (typeof a.text === 'string') attached = `\n\nATTACHED FILE "${name}":\n${a.text.slice(0, 30000)}`;
+    else if (/^(image\/(png|jpeg|webp|gif)|application\/pdf)$/.test(String(a.mime)) && typeof a.data === 'string' && /^[A-Za-z0-9+/=]+$/.test(a.data) && a.data.length <= 7_000_000) {
+      files.push({ mime: a.mime, data: a.data });
+      attached = `\n\n(The owner attached "${name}"; it is included above. Read it and answer about it.)`;
+    } else throw new HttpError(400, 'Yeh file type support nahi hai. Image, PDF ya text file bhejiye (max ~5 MB).');
+  }
+
   let state = `The person is on page ${page}.`;
   let knowledge = PUBLIC_KNOWLEDGE;
   if (owner) {
@@ -101,8 +144,16 @@ export async function chat(rawEnv, request, assistant = 'disha') {
       .join('; ')}.\nBRAIN NOTES: ${brain.notes.length}. ENGINES: ${['gemini', 'groq'].filter((e) => env[`${e.toUpperCase()}_API_KEY`]).join(', ') || 'none'}.`;
   }
   const system = `${owner ? MARG_PERSONA : DISHA_PERSONA}\n\nKNOWLEDGE:\n${knowledge}\n\n${owner ? OWNER_ACTIONS : PUBLIC_ACTIONS}\n\n${FORMAT}`;
-  const prompt = `STATE:\n${state}\n\nCONVERSATION:\n${msgs.map((m) => `${m.role}: ${m.text}`).join('\n')}\n\nReply to the person's last message.`;
-  const r = await generate(env, { system, prompt, maxTokens: owner ? 900 : 600, json: true });
+  const prompt = `STATE:\n${state}\n\nCONVERSATION:\n${msgs.map((m) => `${m.role}: ${m.text}`).join('\n')}${attached}\n\nReply to the person's last message.`;
+  let r;
+  try {
+    r = await generate(env, { system, prompt, maxTokens: owner ? 1600 : 1100, json: true, files });
+  } catch (e) {
+    if (files.length) throw e;
+    const off = offlineAnswer(msgs[msgs.length - 1].text, owner);
+    console.log(`[${assistant}] AI failed: ${e.message}`);
+    return json({ reply: off.reply, say: off.reply.replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, ''), actions: owner ? off.actions : [], offline: true, ...(owner ? { error: e.message } : {}) });
+  }
   let out;
   try {
     out = parseJson(r.text);

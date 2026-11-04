@@ -4,14 +4,51 @@
 // Features (from VANI): mic input, spoken replies, conversation mode, wake word, stop, full screen,
 // opening brief, quick replies, local rule brain when the AI is unavailable.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowsIn, ArrowsOut, Brain, Checks, Copy, DotsThreeVertical, Microphone, PaperPlaneRight, SpeakerHigh, SpeakerSlash, Smiley, Stop, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsIn, ArrowsOut, Brain, Checks, Copy, DotsThreeVertical, FileText, Microphone, Paperclip, PaperPlaneRight, SpeakerHigh, SpeakerSlash, Smiley, Stop, X } from '@phosphor-icons/react';
 import { navigate } from '../lib/router';
 import { SITE } from '../config';
 import { EMOJI, stripEmoji } from './emoji';
 import './Assistant.css';
 
 type Role = 'user' | 'assistant' | 'sys' | 'agent' | 'link';
-type Msg = { id: number; role: Role; text: string; ts: number; read?: boolean; title?: string; href?: string };
+type FileTag = { name: string; thumb?: string };
+type Msg = { id: number; role: Role; text: string; ts: number; read?: boolean; title?: string; href?: string; file?: FileTag };
+type Attach = { name: string; mime: string; data?: string; text?: string; thumb?: string };
+const TEXT_EXT = /\.(txt|md|csv|tsv|json|sql|html?|css|js|ts|tsx|py|xml|ya?ml|log)$/i;
+const BIN_MIME = /^(image\/(png|jpeg|webp|gif)|application\/pdf)$/;
+const MAX_BIN = 5 * 1024 * 1024;
+
+function readAttachment(f: File): Promise<Attach> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('File padh nahi paaye.'));
+    if (TEXT_EXT.test(f.name) || f.type.startsWith('text/')) {
+      if (f.size > 400_000) return reject(new Error('Text file 400 KB se chhoti honi chahiye.'));
+      r.onload = () => resolve({ name: f.name, mime: 'text/plain', text: String(r.result) });
+      r.readAsText(f);
+      return;
+    }
+    if (!BIN_MIME.test(f.type)) return reject(new Error('Image (PNG/JPG/WebP), PDF ya text file bhejiye.'));
+    if (f.size > MAX_BIN) return reject(new Error('File 5 MB se chhoti honi chahiye.'));
+    r.onload = () => {
+      const url = String(r.result);
+      const data = url.slice(url.indexOf(',') + 1);
+      if (!f.type.startsWith('image/')) return resolve({ name: f.name, mime: f.type, data });
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 240 / Math.max(img.width, img.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(img.width * k);
+        cv.height = Math.round(img.height * k);
+        cv.getContext('2d')?.drawImage(img, 0, 0, cv.width, cv.height);
+        resolve({ name: f.name, mime: f.type, data, thumb: cv.toDataURL('image/jpeg', 0.7) });
+      };
+      img.onerror = () => resolve({ name: f.name, mime: f.type, data });
+      img.src = url;
+    };
+    r.readAsDataURL(f);
+  });
+}
 type Opts = { speak: boolean; convo: boolean; wake: boolean; engine: 'auto' | 'device'; speaker: string };
 type Mode = '' | 'listen' | 'think' | 'speak';
 type Action = { type: string; id?: string; value?: string };
@@ -125,6 +162,8 @@ export function Assistant({ kind, token = '' }: Props) {
   const [menu, setMenu] = useState(false);
   const [unread, setUnread] = useState(0);
   const [briefTick, setBriefTick] = useState(0);
+  const [att, setAtt] = useState<Attach | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const idRef = useRef(Date.now());
   const logRef = useRef<HTMLDivElement>(null);
@@ -371,7 +410,7 @@ export function Assistant({ kind, token = '' }: Props) {
         }
         return { reply: 'AI engine abhi connect nahi hai. Settings mein Gemini key daal dijiye, phir main agents chala dunga.', actions: [{ type: 'open_tab', value: 'settings' }] };
       }
-      for (const [re, page] of PUBLIC_PAGE_WORDS) if (re.test(t)) return { reply: 'Chaliye, wahan le chalti hoon 👉', actions: [{ type: 'navigate', value: page }] };
+      if (/\b(open|kholo|le chalo|jao|go to|show)\b/.test(t)) for (const [re, page] of PUBLIC_PAGE_WORDS) if (re.test(t)) return { reply: 'Chaliye, wahan le chalti hoon 👉', actions: [{ type: 'navigate', value: page }] };
       if (/\b(hi|hello|namaste|hey)\b/.test(t)) return { reply: 'Namaste! 😊 Aap SQL Sprint, AI tracks, workshops ya hamare channels ke baare mein pooch sakte hain.', actions: [] };
       return { reply: 'Main aapko sahi page tak le ja sakti hoon 🙂 Academy, AI Lab, Media Hub ya Contact boliye.', actions: [] };
     },
@@ -379,23 +418,25 @@ export function Assistant({ kind, token = '' }: Props) {
   );
 
   const ask = useCallback(
-    async (text: string) => {
-      const clean = text.trim();
+    async (text: string, file?: Attach | null) => {
+      const clean = text.trim() || (file ? 'Is file ko dekh ke bataiye.' : '');
       if (!clean) return;
       stopSpeaking();
       setEmojiOpen(false);
-      push({ role: 'user', text: clean });
+      push({ role: 'user', text: text.trim(), ...(file ? { file: { name: file.name, thumb: file.thumb } } : {}) });
       setMode('think');
-      const history = [...msgsRef.current, { role: 'user', text: clean } as Msg]
+      const history = [...msgsRef.current, { role: 'user', text: file ? `${clean} [file: ${file.name}]` : clean } as Msg]
         .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.text)
         .slice(-10)
         .map((m) => ({ role: m.role, text: m.text }));
       try {
-        const r = await fetch(c.chatUrl, { method: 'POST', headers: { 'content-type': 'application/json', ...authHeaders() }, body: JSON.stringify({ messages: history, page: window.location.pathname }) });
+        const r = await fetch(c.chatUrl, { method: 'POST', headers: { 'content-type': 'application/json', ...authHeaders() }, body: JSON.stringify({ messages: history, page: window.location.pathname, ...(file ? { attachment: { name: file.name, mime: file.mime, data: file.data, text: file.text } } : {}) }) });
         const d = await r.json().catch(() => ({}));
         setMode('');
+        if (r.ok && d.offline && owner && d.error) sys(`AI nahi chala: ${d.error}`);
         if (!r.ok) {
           if (r.status === 429) return reply(d.error || 'Thoda ruk jaiye, ek minute baad poochiye 🙏');
+          if (file) return sys(d.error || `File nahi bheji ja saki (HTTP ${r.status}).`);
           const local = ruleBrain(clean);
           if (owner) sys(`AI nahi chala (${d.error || `HTTP ${r.status}`}).`);
           reply(local.reply);
@@ -585,8 +626,22 @@ export function Assistant({ kind, token = '' }: Props) {
 
   const send = () => {
     const t = input;
+    const f = att;
+    if (!t.trim() && !f) return;
     setInput('');
-    ask(t);
+    setAtt(null);
+    ask(t, f);
+  };
+  const pickFile = async (f?: File) => {
+    if (!f) return;
+    try {
+      setAtt(await readAttachment(f));
+      inRef.current?.focus();
+    } catch (e) {
+      sys((e as Error).message);
+    } finally {
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
 
   return (
@@ -740,7 +795,13 @@ export function Assistant({ kind, token = '' }: Props) {
               return (
                 <div key={m.id} className={`wa-row ${mine ? 'out' : 'in'} ${first ? 'first' : ''}`}>
                   <div className={`wa-bub ${mine ? 'wa-bub--out' : 'wa-bub--in'}`}>
-                    <span className="wa-text">{m.text}</span>
+                    {m.file && (
+                      <span className="wa-file">
+                        {m.file.thumb ? <img src={m.file.thumb} alt="" /> : <FileText size={22} />}
+                        <small>{m.file.name}</small>
+                      </span>
+                    )}
+                    {m.text && <span className="wa-text">{m.text}</span>}
                     <span className="wa-meta">
                       {!mine && (
                         <button type="button" className="wa-play" onClick={() => speak(m.text, undefined, true)} aria-label="Play this message">
@@ -794,6 +855,15 @@ export function Assistant({ kind, token = '' }: Props) {
             </div>
           )}
 
+          {att && (
+            <div className="wa-att">
+              {att.thumb ? <img src={att.thumb} alt="" /> : <FileText size={22} />}
+              <span>{att.name}</span>
+              <button type="button" className="wa-icon wa-icon--flat" onClick={() => setAtt(null)} aria-label="Remove file">
+                <X size={16} />
+              </button>
+            </div>
+          )}
           <form
             className="wa-foot"
             onSubmit={(e) => {
@@ -823,8 +893,16 @@ export function Assistant({ kind, token = '' }: Props) {
                   }
                 }}
               />
+              {owner && (
+                <>
+                  <input ref={fileRef} type="file" hidden accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.txt,.md,.csv,.tsv,.json,.sql,.html,.xml,.yaml,.yml,.log" onChange={(e) => pickFile(e.target.files?.[0])} />
+                  <button type="button" className="wa-icon wa-icon--flat" onClick={() => fileRef.current?.click()} aria-label="Attach file" title="Image, PDF ya text file">
+                    <Paperclip size={21} />
+                  </button>
+                </>
+              )}
             </div>
-            {input.trim() ? (
+            {input.trim() || att ? (
               <button type="submit" className="wa-send" aria-label="Send">
                 <PaperPlaneRight size={20} weight="fill" />
               </button>

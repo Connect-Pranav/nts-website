@@ -14,7 +14,7 @@ export const SETTINGS = {
   MARG_SARVAM_SPEAKER: { label: 'Marg voice (optional, default shubh): shubh, priya, simran, ishita, ritu, kavya or shreya', secret: false, check: (v) => /^(shubh|priya|simran|ishita|ritu|kavya|shreya)$/.test(v) || 'must be one of shubh, priya, simran, ishita, ritu, kavya, shreya' },
   MARG_TTS_DAILY_CHARS: { label: 'Sarvam daily character limit (optional, default 5000)', secret: false, check: (v) => (/^\d{1,6}$/.test(v) && Number(v) <= 200000) || 'must be a whole number up to 200000' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-2.5-flash)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
-  GROQ_MODEL: { label: 'Groq model (optional, default llama-3.3-70b-versatile)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
+  GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };
 
 const kv = (env) => {

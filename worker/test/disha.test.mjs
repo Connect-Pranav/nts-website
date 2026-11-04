@@ -88,3 +88,42 @@ test('voice endpoints are owner only; tts uses Sarvam with cap and cache', async
 test('old Disha owner endpoints are gone', async () => {
   assert.equal((await site.fetch(post('/api/disha/tts', { text: 'x' }, { token: TOKEN }), base(), {})).status, 404);
 });
+
+test('engines down: Disha still answers from the offline bank; owner sees every engine error', async () => {
+  const orig = globalThis.fetch;
+  globalThis.fetch = async (u) =>
+    String(u).includes('groq')
+      ? new Response(JSON.stringify({ error: { message: 'The model `x` does not exist' } }), { status: 404 })
+      : new Response(JSON.stringify({ error: { message: 'bad key' } }), { status: 401 });
+  try {
+    const env = base({ GROQ_API_KEY: 'gsk_test' });
+    const r = await site.fetch(post('/api/disha/chat', { messages: [{ role: 'user', text: 'Tell me about SQL' }] }, { ip: '7.7.7.1' }), env, {});
+    const d = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(d.offline, true);
+    assert.match(d.reply, /Structured Query Language/);
+    assert.equal(d.error, undefined);
+    const o = await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'hi' }] }, { token: TOKEN, ip: '7.7.7.2' }), env, {});
+    const od = await o.json();
+    assert.match(od.error, /Gemini: bad key.*\| Groq:/);
+  } finally {
+    globalThis.fetch = orig;
+  }
+});
+
+test('Marg attachments: images go to Gemini as inlineData, text files into the prompt; Disha ignores them', async () => {
+  const g = mockGemini({ reply: 'Dekh liya Sir', say: 'Dekh liya Sir', actions: [] });
+  try {
+    let r = await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'yeh dekho' }], attachment: { name: 'a.png', mime: 'image/png', data: 'iVBORw0KGgo=' } }, { token: TOKEN, ip: '7.7.7.3' }), base(), {});
+    assert.equal(r.status, 200);
+    assert.deepEqual(g.seen.body.contents[0].parts[0], { inlineData: { mimeType: 'image/png', data: 'iVBORw0KGgo=' } });
+    r = await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'summary' }], attachment: { name: 'n.csv', mime: 'text/plain', text: 'views,likes\n10,2' } }, { token: TOKEN, ip: '7.7.7.3' }), base(), {});
+    assert.match(g.seen.body.contents[0].parts.at(-1).text, /ATTACHED FILE "n.csv"[\s\S]*views,likes/);
+    r = await site.fetch(post('/api/marg/chat', { messages: [{ role: 'user', text: 'x' }], attachment: { name: 'v.exe', mime: 'application/x-msdownload', data: 'AAAA' } }, { token: TOKEN, ip: '7.7.7.3' }), base(), {});
+    assert.equal(r.status, 400);
+    r = await site.fetch(post('/api/disha/chat', { messages: [{ role: 'user', text: 'hi' }], attachment: { name: 'a.png', mime: 'image/png', data: 'iVBORw0KGgo=' } }, { ip: '7.7.7.4' }), base(), {});
+    assert.equal(g.seen.body.contents[0].parts.length, 1);
+  } finally {
+    g.restore();
+  }
+});
