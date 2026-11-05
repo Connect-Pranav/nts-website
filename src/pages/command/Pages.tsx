@@ -577,7 +577,7 @@ export function LinkedInPage({ api }: { api: Api }) {
             {busy === 'new' ? 'Writing…' : 'Write 3 drafts'}
           </button>
         </form>
-        <p className="ov-muted">Written to the NTS LinkedIn bible from the Company Blueprint: first person as Pranav, the 4 content pillars, one CTA, #NIKHILsTECHSTUDIO. Research → draft → your review → schedule → post. Approved posts go out with “Post now” or automatically at their scheduled time (checked every hour). Personal profile only: Company Page posting needs LinkedIn’s Community Management API review.</p>
+        <p className="ov-muted">Written to the NTS LinkedIn bible from the Company Blueprint: first person as the connected LinkedIn account, the 4 content pillars, one CTA, #NIKHILsTECHSTUDIO. Research → draft → your review → schedule → post. Approved posts go out with “Post now” or automatically at their scheduled time (checked every hour). Personal profile only: Company Page posting needs LinkedIn’s Community Management API review.</p>
         {err && <p className="dx-err">{err}</p>}
       </Card>
       {cal.length > 0 && (

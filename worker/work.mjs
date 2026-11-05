@@ -18,7 +18,7 @@ const CHANNELS = ['LinkedIn', 'Instagram', 'YouTube', 'X', 'All'];
 
 // What each NTS agent owns (ids match agents/registry.json entries with dev: true)
 export const TEAM = {
-  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'Feed-ready LinkedIn text posts in first person as Pranav Kumar (he runs NTS LinkedIn), following the NTS LINKEDIN BIBLE below, written exactly as they will be posted: hook as line 1 (under 140 chars), blank lines between short paragraphs, one practical takeaway, a question or follow CTA, 3-5 hashtags on the last line. Never labels like Hook:/Slide 1:/CTA:, never markdown, never promise links or templates that do not exist.' },
+  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'Feed-ready LinkedIn text posts in first person as the owner of the connected LinkedIn account, following the NTS LINKEDIN BIBLE below, written exactly as they will be posted: hook as line 1 (under 140 chars), blank lines between short paragraphs, one practical takeaway, a question or follow CTA, 3-5 hashtags on the last line. Never labels like Hook:/Slide 1:/CTA:, never markdown, never promise links or templates that do not exist.' },
   ops_lakshmi_growth: { name: 'Social Media Manager', job: 'Instagram Reels and YouTube Shorts scripts in 3 scenes (hook, value, CTA) with on-screen text, captions with hashtags, YouTube title + description + tags, posting slot, and X (Twitter) posts: max 280 characters each, a short thread only when it truly helps (separate tweets with a line "---").' },
   ops_soma_analytics: { name: 'Growth & Analytics', job: 'SEO keywords, what to post next and why, which metric to watch for this piece, one small growth experiment. Never invent numbers; say what to measure instead.' },
 };

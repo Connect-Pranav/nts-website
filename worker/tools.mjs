@@ -97,7 +97,8 @@ export const TOOLS = {
     run: async (env, a) => {
       const n = a.count ?? 1;
       const settings = await store.withSettings(env);
-      const r = await runAgent(env, 'ops_maya_docs', `${bible(settings.WAITLIST_URL || '')}\n\nFORMAT: ${FORMATS[a.format || 'auto']}${n > 1 && (a.format || 'auto') === 'auto' ? ' Use a different pillar for each post.' : ''}\n\nWrite ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". ${FEED_READY}`);
+      const liMeta = await env.NTS_KV?.get('li/oauth/meta', 'json');
+      const r = await runAgent(env, 'ops_maya_docs', `${bible(settings.WAITLIST_URL || '', liMeta?.name || '')}\n\nFORMAT: ${FORMATS[a.format || 'auto']}${n > 1 && (a.format || 'auto') === 'auto' ? ' Use a different pillar for each post.' : ''}\n\nWrite ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". ${FEED_READY}`);
       const posts = r.text.split(/\n-{3,}\n/).map((x) => polishPost(x.trim())).filter(Boolean).slice(0, n);
       const items = await work.addItems(env, posts.map((body, i) => ({ agent: 'ops_maya_docs', channel: 'LinkedIn', title: `${a.topic.slice(0, 60)}${n > 1 ? ` (${i + 1})` : ''}`, body, status: 'waiting' })), `${r.engine} · ${r.model}`);
       return { drafted: items.length, items: items.map(({ id, title, status }) => ({ id, title, status })) };
