@@ -804,12 +804,12 @@ export function SocialPage({ api }: { api: Api }) {
                 <InstagramLogo size={14} /> Connect Instagram
               </button>
             ) : (
-              <Pill tone="warn">add IG_APP_ID + IG_APP_SECRET in Settings (or paste IG_ACCESS_TOKEN)</Pill>
+              <Pill tone="warn">add IG_APP_ID + IG_APP_SECRET (+ IG_CONFIG_ID for unified login) in Settings</Pill>
             )}
           </li>
           {ig && !ig.connected && (
             <li className="ov-muted">
-              Meta app → Instagram → API setup with Instagram login → Business login settings → OAuth redirect URI: <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{ig.redirectUri}</code>
+              Meta app → Instagram API → API setup with Unified login (newer apps) or Instagram login → redirect URL: <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{ig.redirectUri}</code>
             </li>
           )}
           <li className="ov-muted">Mode: approval. Every reply is drafted and checked, and is posted only when you press “Approve & post reply” (or post it yourself). Legal threats, serious complaints, personal data, security and harassment are always escalated, never auto-answered.</li>
