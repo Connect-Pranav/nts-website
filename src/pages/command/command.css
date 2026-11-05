@@ -1637,3 +1637,15 @@ body.is-dev {
   vertical-align: -1px;
   opacity: 0.6;
 }
+.soc-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  cursor: pointer;
+}
+.soc-auto input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--nc-bright, #27e6f0);
+}

@@ -693,7 +693,7 @@ export function LinkedInPage({ api }: { api: Api }) {
 
 // ---------------- Social Engagement ----------------
 export function SocialPage({ api }: { api: Api }) {
-  const [d, setD] = useState<{ comments: Comment[]; youtube: boolean; instagram: boolean } | null>(null);
+  const [d, setD] = useState<{ comments: Comment[]; youtube: boolean; instagram: boolean; policy?: { auto: boolean } } | null>(null);
   const [filter, setFilter] = useState('pending');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -702,7 +702,7 @@ export function SocialPage({ api }: { api: Api }) {
   const [posting, setPosting] = useState('');
   const [ig, setIg] = useState<{ configured: boolean; connected: boolean; username: string | null; expiresAt: string | null; redirectUri: string } | null>(null);
   const load = useCallback(() => {
-    api<{ comments: Comment[]; youtube: boolean; instagram: boolean }>('/api/dev/social').then(setD, (e: Error) => setErr(e.message));
+    api<{ comments: Comment[]; youtube: boolean; instagram: boolean; policy?: { auto: boolean } }>('/api/dev/social').then(setD, (e: Error) => setErr(e.message));
     api<{ configured: boolean; connected: boolean; redirectUri: string; channel: { title: string } | null }>('/api/dev/youtube').then(setYt, () => {});
     api<{ configured: boolean; connected: boolean; username: string | null; expiresAt: string | null; redirectUri: string }>('/api/dev/instagram').then(setIg, () => {});
   }, [api]);
@@ -812,7 +812,29 @@ export function SocialPage({ api }: { api: Api }) {
               Meta app → Instagram API → API setup with Unified login (newer apps) or Instagram login → redirect URL: <code className="br-code" style={{ display: 'inline-block', margin: 0 }}>{ig.redirectUri}</code>
             </li>
           )}
-          <li className="ov-muted">Mode: approval. Every reply is drafted and checked, and is posted only when you press “Approve & post reply” (or post it yourself). Legal threats, serious complaints, personal data, security and harassment are always escalated, never auto-answered.</li>
+          <li className="dx-row">
+            <label className="soc-auto">
+              <input
+                type="checkbox"
+                checked={d.policy?.auto !== false}
+                onChange={async (e) => {
+                  setErr('');
+                  try {
+                    await api('/api/dev/social/policy', { method: 'POST', body: JSON.stringify({ auto: e.target.checked }) });
+                    await load();
+                  } catch (x) {
+                    setErr((x as Error).message);
+                  }
+                }}
+              />
+              <b>Auto-reply</b>
+            </label>
+            <span className="ov-muted">
+              {d.policy?.auto !== false
+                ? 'On: thanks, questions, feedback and enquiries are answered automatically every hour (and right after “Fetch & analyse”). Negative comments, legal threats, complaints, personal data, security and harassment always wait for you.'
+                : 'Off: every reply waits for “Approve & post reply”.'}
+            </span>
+          </li>
         </ul>
         <div className="dx-row">
           <button

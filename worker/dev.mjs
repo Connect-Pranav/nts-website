@@ -15,6 +15,7 @@ import * as integ from './integrations.mjs';
 import * as yt from './youtube.mjs';
 import * as li from './linkedin.mjs';
 import * as ig from './instagram.mjs';
+import * as autoreply from './autoreply.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -127,7 +128,11 @@ export async function handle(rawEnv, request, url, ctx) {
     if (TOOLS[b.name].sensitive) throw new HttpError(403, 'Sensitive tool: use the Approvals center.');
     return json(await callTool(rawEnv, b.name, b.args || {}, { title: b.title || b.name, via: 'dashboard' }));
   }
-  if (path === '/api/dev/social' && method === 'GET') return json({ comments: (await rawEnv.NTS_KV.get('social/comments', 'json')) || [], youtube: Boolean(env.YOUTUBE_API_KEY), instagram: Boolean(env.IG_ACCESS_TOKEN) });
+  if (path === '/api/dev/social' && method === 'GET') return json({ comments: (await rawEnv.NTS_KV.get('social/comments', 'json')) || [], youtube: Boolean(env.YOUTUBE_API_KEY), instagram: Boolean(env.IG_ACCESS_TOKEN), policy: await autoreply.getPolicy(rawEnv) });
+  if (path === '/api/dev/social/policy' && method === 'POST') {
+    const p = await autoreply.setPolicy(rawEnv, (await body(request))?.auto);
+    return json({ policy: p, run: p.auto ? await autoreply.run(rawEnv) : null });
+  }
   const sc = path.match(/^\/api\/dev\/social\/([\w-]{2,80})$/);
   if (sc && method === 'POST') {
     const b = await body(request);

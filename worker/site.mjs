@@ -113,10 +113,20 @@ async function cached(url, ctx, compute) {
   return res;
 }
 
+/** Hourly: fetch + analyse new YouTube/Instagram comments; safe replies go out automatically (owner policy). */
+async function socialHourly(env) {
+  try {
+    const { analyzeComments } = await import('./integrations.mjs');
+    await analyzeComments(env);
+  } catch (e) {
+    console.log('[social] hourly:', e.message);
+  }
+}
+
 export default {
   // Cloudflare cron (free): the NTS agent team runs a cycle on autopilot
   async scheduled(event, env, ctx) {
-    if (event.cron === '5 * * * *') return ctx.waitUntil(liOAuth.scheduled(env)); // hourly: due LinkedIn posts
+    if (event.cron === '5 * * * *') return ctx.waitUntil(Promise.all([liOAuth.scheduled(env), socialHourly(env)])); // hourly: due LinkedIn posts + new comments
     ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env), liOAuth.scheduled(env), igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))]));
   },
   async fetch(request, env, ctx) {

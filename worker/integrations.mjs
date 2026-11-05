@@ -93,7 +93,10 @@ export async function analyzeComments(rawEnv, fetchImpl = fetch) {
   const known = (await kv.get('social/comments', 'json')) || [];
   const seen = new Set(known.map((c) => c.id));
   const fresh = list.filter((c) => !seen.has(c.id)).slice(0, 16);
-  if (!fresh.length) return { analysed: 0, comments: known.slice(0, 60) };
+  if (!fresh.length) {
+    const auto = await (await import('./autoreply.mjs')).run(rawEnv, fetchImpl).catch((e) => ({ posted: 0, errors: [e.message] }));
+    return { analysed: 0, autoPosted: auto.posted || 0, comments: ((await kv.get('social/comments', 'json')) || known).slice(0, 60) };
+  }
   const env = await store.withSettings(rawEnv);
   const system = `${await store.brainContext(rawEnv)}
 
@@ -110,5 +113,6 @@ You are the NTS Community Manager. For each YouTube or Instagram comment (POST g
   });
   const all = [...rows, ...known].slice(0, 200);
   await kv.put('social/comments', JSON.stringify(all));
-  return { analysed: rows.length, comments: all.slice(0, 60) };
+  const auto = await (await import('./autoreply.mjs')).run(rawEnv, fetchImpl).catch((e) => ({ posted: 0, errors: [e.message] }));
+  return { analysed: rows.length, autoPosted: auto.posted || 0, comments: ((await kv.get('social/comments', 'json')) || all).slice(0, 60) };
 }
