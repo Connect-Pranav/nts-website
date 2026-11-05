@@ -20,6 +20,7 @@ export const SETTINGS = {
   YT_CLIENT_SECRET: { label: 'YouTube sign-in: OAuth client secret', secret: true, check: (v) => /^[\w-]{20,80}$/.test(v) || 'looks incomplete (usually starts with GOCSPX-)' },
   YT_REFRESH_TOKEN: { label: 'YouTube channel sign-in (set by Connect YouTube)', secret: true, internal: true, check: (v) => /^[\w./-]{20,300}$/.test(v) || 'invalid token' },
   IG_CONFIG_ID: { label: 'Instagram: Configuration ID (newer Meta apps: Instagram API → API setup with Unified login). With it, IG_APP_ID/IG_APP_SECRET are the Meta App ID and App secret (App settings → Basic)', secret: false, check: (v) => /^\d{6,25}$/.test(v) || 'should be the numeric Configuration ID' },
+  IG_USER_ID: { label: 'Instagram: account ID for unified login (Meta Business Suite → Instagram accounts → ID, starts with 1784)', secret: false, check: (v) => /^\d{10,25}$/.test(v) || 'should be the numeric Instagram account ID' },
   IG_APP_ID: { label: 'Instagram: App ID (Meta App ID for unified login, or the Instagram App ID for Instagram login)', secret: false, check: (v) => /^\d{6,25}$/.test(v) || 'should be the numeric Instagram App ID' },
   IG_APP_SECRET: { label: 'Instagram: App secret (Meta App secret for unified login, or the Instagram app secret)', secret: true, check: (v) => /^[a-f0-9]{16,64}$/i.test(v) || 'looks incomplete' },
   IG_ACCESS_TOKEN: { label: 'Instagram access token (set by Connect Instagram, or paste a long-lived IGAA… token from the Meta dashboard)', secret: true, check: (v) => /^[\w.-]{40,600}$/.test(v) || 'looks incomplete (starts with IGAA)' },

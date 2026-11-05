@@ -35,7 +35,13 @@ async function token(rawEnv) {
 async function ctx(rawEnv) {
   const tok = await token(rawEnv);
   const meta = (rawEnv.NTS_KV && (await rawEnv.NTS_KV.get('ig/meta', 'json'))) || {};
-  return meta.mode === 'fb' && meta.id ? { tok, host: FB, me: `/${meta.id}`, meta } : { tok, host: G, me: '/me', meta };
+  if (meta.mode === 'fb') {
+    const env = await store.withSettings(rawEnv);
+    const id = meta.id || env.IG_USER_ID;
+    if (!id) throw new HttpError(409, 'Instagram is signed in but the account id is missing: add IG_USER_ID in Settings.');
+    return { tok, host: FB, me: `/${id}`, meta: { ...meta, id } };
+  }
+  return { tok, host: G, me: '/me', meta };
 }
 
 export async function status(rawEnv, origin) {
@@ -103,8 +109,14 @@ async function callbackUnified(rawEnv, env, url, code, fetchImpl) {
   if (!t.access_token) return page('Instagram sign-in failed', clean(t.error?.message || 'Could not get an access token.'), false);
   const tok = t.access_token;
   const why = [];
-  const ig = await findAccount(tok, fetchImpl, `${env.IG_APP_ID}|${env.IG_APP_SECRET}`, why);
-  if (!ig) return page('Instagram not found', `Signed in, but no Instagram professional account was shared with NTS Command. Connect again and tick the Instagram account.<br><small style="opacity:.6">${clean(why.join(' · ')).slice(0, 600)}</small>`, false);
+  // The account id is known up front (IG_USER_ID); otherwise ask Meta. The sign-in is kept either way.
+  let ig = env.IG_USER_ID ? await call(tok, `/${env.IG_USER_ID}`, { fields: 'id,username' }, {}, fetchImpl, FB).catch((e) => (why.push(e.message), { id: env.IG_USER_ID, username: null })) : null;
+  if (!ig) ig = await findAccount(tok, fetchImpl, `${env.IG_APP_ID}|${env.IG_APP_SECRET}`, why);
+  if (!ig) {
+    await store.saveSetting(rawEnv, { name: 'IG_ACCESS_TOKEN', value: tok });
+    await rawEnv.NTS_KV.put('ig/meta', JSON.stringify({ mode: 'fb', id: null, username: null, refreshedAt: nowIso() }));
+    return page('Instagram: account id needed', `Signed in and saved. Add IG_USER_ID in Settings (Meta Business Suite → Instagram accounts → ID); no need to connect again.<br><small style="opacity:.6">${clean(why.join(' · ')).slice(0, 600)}</small>`, false);
+  }
   await store.saveSetting(rawEnv, { name: 'IG_ACCESS_TOKEN', value: tok });
   await rawEnv.NTS_KV.put('ig/meta', JSON.stringify({ mode: 'fb', id: ig.id, username: ig.username || null, exp: t.expires_in ? Date.now() + Number(t.expires_in) * 1000 : null, refreshedAt: nowIso() }));
   await ops.log(rawEnv, 'system', `Instagram connected: @${ig.username || ig.id}`);

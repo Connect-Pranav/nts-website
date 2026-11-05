@@ -18,7 +18,9 @@
   // Agent team autopilot: one cycle every 6 hours (Workers cron triggers are free).
   "triggers": { "crons": ["17 */6 * * *", "5 * * * *"] },
   "vars": {
-    "YOUTUBE_HANDLE": "@NikhilsTechStudio"
+    "YOUTUBE_HANDLE": "@NikhilsTechStudio",
+    // public Instagram user id of @nikhil_techstudio (Meta Business Suite → Instagram accounts → ID)
+    "IG_USER_ID": "17841420276355296"
   },
   "observability": { "enabled": true }
 }
