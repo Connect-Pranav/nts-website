@@ -1,4 +1,4 @@
-// Mobile bottom navigation: a glass bar whose top edge dips into a smooth notch under a floating
+// Bottom navigation (mobile bar, centred dock on desktop): a glass bar whose top edge dips into a smooth notch under a floating
 // button. On tab change the notch and the button glide together on a spring (rAF), so the bar
 // "flows" to the new tab like the reference. Honours prefers-reduced-motion.
 import { useEffect, useLayoutEffect, useRef } from 'react';
@@ -135,6 +135,7 @@ export function TabDock({ path }: { path: string }) {
             <a
               href={t.href}
               aria-label={t.label}
+              title={t.label}
               aria-current={k === i && known ? 'page' : undefined}
               className={k === i && known ? 'on' : ''}
               onClick={(e) => {

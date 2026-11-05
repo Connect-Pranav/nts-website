@@ -1,10 +1,6 @@
-/* Glassy notched tab dock (mobile only). The bar shape (with a smooth notch) is a clip-path
+/* Glassy notched tab dock (mobile: full-width bottom bar; desktop: centred floating dock). The bar shape (with a smooth notch) is a clip-path
    path updated by TabDock.tsx on a spring, so the notch and the floating button glide together. */
-.tdock {
-  display: none;
-}
-
-@media (max-width: 640px) {
+@media all {
   .tdock {
     --h: 74px;
     --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
@@ -116,8 +112,28 @@
   body:has(.tdock) main {
     padding-bottom: 110px;
   }
+}
+@media (max-width: 640px) {
   .wa:not(.is-open) {
     bottom: calc(var(--h, 74px) + 34px) !important;
+  }
+}
+/* desktop / tablet: a centred floating dock */
+@media (min-width: 641px) {
+  .tdock {
+    left: 50%;
+    right: auto;
+    width: 440px;
+    bottom: 22px;
+    transform: translateX(-50%);
+  }
+  .tdock a:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  .tdock a.on:hover {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.6);
   }
 }
 @keyframes tdock-pop {
