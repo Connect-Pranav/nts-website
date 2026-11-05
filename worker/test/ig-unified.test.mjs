@@ -15,4 +15,6 @@ test('unified login: finds the Instagram account from assigned accounts, then Pa
   const viaPage = await findAccount('t', f({ '/me/accounts': { data: [{ id: 'p1' }, { id: 'p2', instagram_business_account: { id: '179', username: 'nts' } }] } }));
   assert.equal(viaPage.id, '179');
   assert.equal(await findAccount('t', f({})), null);
+  const viaGrant = await findAccount('t', f({ '/debug_token': { data: { granular_scopes: [{ scope: 'instagram_basic', target_ids: ['1784'] }] } }, '/1784': { id: '1784', username: 'nikhil_techstudio' } }), 'app|secret');
+  assert.deepEqual(viaGrant, { id: '1784', username: 'nikhil_techstudio' });
 });

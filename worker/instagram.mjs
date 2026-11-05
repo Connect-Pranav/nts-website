@@ -102,23 +102,35 @@ async function callbackUnified(rawEnv, env, url, code, fetchImpl) {
     .catch(() => ({}));
   if (!t.access_token) return page('Instagram sign-in failed', clean(t.error?.message || 'Could not get an access token.'), false);
   const tok = t.access_token;
-  const ig = await findAccount(tok, fetchImpl);
-  if (!ig) return page('Instagram not found', 'Signed in, but no Instagram professional account was shared with NTS Command. Connect again and tick the Instagram account.', false);
+  const why = [];
+  const ig = await findAccount(tok, fetchImpl, `${env.IG_APP_ID}|${env.IG_APP_SECRET}`, why);
+  if (!ig) return page('Instagram not found', `Signed in, but no Instagram professional account was shared with NTS Command. Connect again and tick the Instagram account.<br><small style="opacity:.6">${clean(why.join(' · ')).slice(0, 600)}</small>`, false);
   await store.saveSetting(rawEnv, { name: 'IG_ACCESS_TOKEN', value: tok });
   await rawEnv.NTS_KV.put('ig/meta', JSON.stringify({ mode: 'fb', id: ig.id, username: ig.username || null, exp: t.expires_in ? Date.now() + Number(t.expires_in) * 1000 : null, refreshedAt: nowIso() }));
   await ops.log(rawEnv, 'system', `Instagram connected: @${ig.username || ig.id}`);
   return page('Instagram connected', `Signed in as <b>@${clean(ig.username || ig.id)}</b>. This sign-in does not expire.`, true);
 }
 
-/** The Instagram account a unified-login token can act on: assigned accounts first, then Page-linked ones. */
-export async function findAccount(tok, fetchImpl = fetch) {
+/** The Instagram account a unified-login token can act on. The token's own grant (debug_token →
+ * granular_scopes target ids) is the most reliable; assigned and Page-linked accounts are fallbacks. */
+export async function findAccount(tok, fetchImpl = fetch, appToken = '', why = []) {
+  if (appToken) {
+    const d = await call(appToken, '/debug_token', { input_token: tok }, {}, fetchImpl, FB).catch((e) => (why.push(`debug_token: ${e.message}`), null));
+    const ids = [...new Set((d?.data?.granular_scopes || []).filter((g) => /^instagram_/.test(g.scope)).flatMap((g) => g.target_ids || []))];
+    for (const id of ids) {
+      const a = await call(tok, `/${id}`, { fields: 'id,username' }, {}, fetchImpl, FB).catch((e) => (why.push(`${id}: ${e.message}`), null));
+      if (a?.username) return a;
+    }
+    if (ids.length) return { id: ids[0], username: null };
+    if (d?.data) why.push(`scopes: ${(d.data.scopes || []).join(',') || 'none'}`);
+  }
   const tries = [
     ['/me/assigned_instagram_accounts', { fields: 'id,username' }, (b) => b.data?.[0]],
     ['/me/instagram_accounts', { fields: 'id,username' }, (b) => b.data?.[0]],
     ['/me/accounts', { fields: 'instagram_business_account{id,username}' }, (b) => b.data?.find((p) => p.instagram_business_account)?.instagram_business_account],
   ];
   for (const [path, params, pick] of tries) {
-    const b = await call(tok, path, params, {}, fetchImpl, FB).catch(() => null);
+    const b = await call(tok, path, params, {}, fetchImpl, FB).catch((e) => (why.push(`${path}: ${e.message}`), null));
     const a = b && pick(b);
     if (a?.id) return a;
   }
