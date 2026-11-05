@@ -21,3 +21,9 @@ test('lintPost flags labels and promised links', () => {
   assert.ok(issues.some((m) => /labels/.test(m)));
   assert.ok(issues.some((m) => /link/.test(m)));
 });
+
+test('labels behind emoji bullets (🔹) are stripped too', () => {
+  const t = '🔹 Hook: "Stop Googling."\n🔹 Slide 1: Identify the role.\n🔹 CTA: Which step is hardest?\n#AI';
+  assert.equal(polishPost(t), 'Stop Googling.\n\n→ Identify the role.\n\nWhich step is hardest?\n\n#AI');
+  assert.deepEqual(lintPost(polishPost(t)), []);
+});

@@ -1599,3 +1599,10 @@ body.is-dev {
   margin: 0;
   padding-left: 16px;
 }
+.li-del {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.75;
+}

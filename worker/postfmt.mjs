@@ -3,7 +3,10 @@
 // it out the way LinkedIn reads well: hook line, blank line, short paragraphs, hashtags last.
 // Shared by the worker (drafting + publishing) and the console (preview + "Fix format").
 
-const LABEL = /^\s*(?:[-*•◆◇▪►→✅]\s*)?(?:\*\*)?(hook|slide\s*\d+|takeaway|cta|call to action|caption|body|intro|outro|post|headline|title|closing|conclusion|summary)(?:\*\*)?\s*[:\-–—]\s*/i;
+// any bullet or emoji in front of a label: ◆ 🔹 • - * ✅ …
+const LABEL = /^\s*(?:[^\p{L}\p{N}\s"“'‘([#@]{1,4}\s*)?(?:\*\*)?(hook|slide\s*\d+|takeaway|cta|call to action|caption|body|intro|outro|post|headline|title|closing|conclusion|summary)(?:\*\*)?\s*[:\-–—]\s*/iu;
+// list bullets the writer uses; turned into one consistent arrow
+const BULLET = /^\s*(?:[-*•◆◇▪▫►▶→✅✔☑■□●○◾◽]|🔹|🔸|🔷|🔶|👉)\uFE0F?\s+/u;
 const TAGS_LINE = /^(\s*#[\p{L}\p{N}_]+\s*)+$/u;
 
 /** Problems a reader would notice in the feed. */
@@ -51,8 +54,8 @@ export function polishPost(text) {
       // the hook stands alone; a takeaway or CTA starts its own paragraph
       if (/^(takeaway|cta|call to action|closing|conclusion|summary)$/.test(kind) && out.length && out[out.length - 1] !== '') out.push('');
       if (/^slide/.test(kind)) l = `→ ${l}`;
-    } else if (/^\s*[◆◇▪►•*-]\s+/.test(raw)) {
-      l = raw.replace(/^\s*[◆◇▪►•*-]\s+/, '→ ');
+    } else if (BULLET.test(raw)) {
+      l = raw.replace(BULLET, '→ ');
     }
     out.push(l);
     if (!firstDone) {

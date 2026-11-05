@@ -663,6 +663,11 @@ export function LinkedInPage({ api }: { api: Api }) {
                       ↗ View on LinkedIn
                     </a>
                   )}
+                  {!i.postedUrl && (
+                    <button type="button" className="nc-link li-del" onClick={() => window.confirm(`Delete “${i.title}”?`) && api(`/api/dev/work/${i.id}`, { method: 'DELETE' }).then(load)}>
+                      <Trash size={13} /> Delete draft
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

@@ -4,6 +4,7 @@
 // approval) or "ready". Approve/reject becomes a lesson in the Brain that every later run reads, approved
 // pieces are kept as examples, and recent topics are never repeated. Cron runs it on autopilot (free).
 import { polishPost } from './postfmt.mjs';
+import { FRESH_LINKEDIN, RESET_BEFORE, RESET_KEY } from './fresh-li.mjs';
 import { HttpError, newId, nowIso } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
@@ -38,10 +39,21 @@ const kv = (env) => {
 };
 
 export async function getWork(env) {
-  const w = env.NTS_KV ? await env.NTS_KV.get(KEY, 'json') : null;
+  let w = env.NTS_KV ? await env.NTS_KV.get(KEY, 'json') : null;
+  if (env.NTS_KV && w && !w[RESET_KEY] && w.items?.some(isOldLinkedInDraft)) w = await resetLinkedIn(env, w);
   // unposted LinkedIn drafts are always shown and posted in feed-ready form (older drafts had Hook:/Slide 1: labels)
   const items = (w?.items ?? []).map((i) => (i.channel === 'LinkedIn' && !i.postedUrl && i.body ? { ...i, body: polishPost(i.body) } : i));
-  return { items, topics: w?.topics ?? [], cycles: w?.cycles ?? 0, updated: w?.updated ?? null, last: w?.last ?? null, autopilot: w?.autopilot !== false };
+  return { [RESET_KEY]: w?.[RESET_KEY] ?? null, items, topics: w?.topics ?? [], cycles: w?.cycles ?? 0, updated: w?.updated ?? null, last: w?.last ?? null, autopilot: w?.autopilot !== false };
+}
+const isOldLinkedInDraft = (i) => i.channel === 'LinkedIn' && !i.postedUrl && Date.parse(i.createdAt) < Date.parse(RESET_BEFORE);
+/** One-time: drop the old unposted LinkedIn drafts and add fresh feed-ready ones (still waiting for approval). */
+async function resetLinkedIn(env, w) {
+  const now = nowIso();
+  const kept = (w?.items ?? []).filter((i) => !isOldLinkedInDraft(i));
+  const fresh = FRESH_LINKEDIN.map((p) => ({ id: newId('w'), agent: 'ops_maya_docs', agentName: TEAM.ops_maya_docs?.name || 'LinkedIn Content Writer', channel: 'LinkedIn', title: p.title, body: p.body, status: 'waiting', topic: '', createdAt: now, brain: 'reset', by: 'brain' }));
+  const next = { ...(w ?? {}), items: [...fresh, ...kept], updated: now, [RESET_KEY]: now };
+  await env.NTS_KV.put(KEY, JSON.stringify(next));
+  return next;
 }
 async function putWork(env, w) {
   await kv(env).put(KEY, JSON.stringify(w));
