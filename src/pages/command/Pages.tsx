@@ -647,7 +647,7 @@ export function LinkedInPage({ api }: { api: Api }) {
                   )}
                   {i.status === 'ready' && !i.postedUrl && (
                     <>
-                      <a className={`dx-btn ${li?.connected ? '' : 'dx-btn--primary'}`} href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(edit[i.id] ?? i.body)}`} target="_blank" rel="noreferrer">
+                      <a className={`dx-btn ${li?.connected ? '' : 'dx-btn--primary'}`} href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(polishPost(edit[i.id] ?? i.body))}`} target="_blank" rel="noreferrer">
                         <LinkedinLogo size={14} /> {li?.connected ? 'Post manually' : 'Post on LinkedIn'}
                       </a>
                       <div className="dx-row">

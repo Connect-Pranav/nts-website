@@ -5,6 +5,7 @@
 import { HttpError, nowIso } from './util.mjs';
 import * as store from './store.mjs';
 import * as ops from './ops.mjs';
+import { polishPost } from './postfmt.mjs';
 
 const AUTH = 'https://www.linkedin.com/oauth/v2/authorization';
 const TOKEN = 'https://www.linkedin.com/oauth/v2/accessToken';
@@ -87,7 +88,7 @@ export async function publish(rawEnv, itemId, fetchImpl = fetch) {
   const meta = await rawEnv.NTS_KV.get('li/oauth/meta', 'json');
   if (!env.LI_ACCESS_TOKEN || !meta?.sub) throw new HttpError(409, 'LinkedIn is not connected. LinkedIn Studio → Connect LinkedIn.');
   if (meta.exp <= Date.now()) throw new HttpError(409, 'LinkedIn sign-in expired (60 days). Connect LinkedIn again.');
-  const text = String(it.body).slice(0, 3000);
+  const text = polishPost(String(it.body)).slice(0, 3000);
   const body = JSON.stringify({ author: `urn:li:person:${meta.sub}`, commentary: commentary(text), visibility: 'PUBLIC', distribution: { feedDistribution: 'MAIN_FEED', targetEntities: [], thirdPartyDistributionChannels: [] }, lifecycleState: 'PUBLISHED', isReshareDisabledByAuthor: false });
   let last = '';
   for (const v of versions()) {

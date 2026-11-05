@@ -39,7 +39,9 @@ const kv = (env) => {
 
 export async function getWork(env) {
   const w = env.NTS_KV ? await env.NTS_KV.get(KEY, 'json') : null;
-  return { items: w?.items ?? [], topics: w?.topics ?? [], cycles: w?.cycles ?? 0, updated: w?.updated ?? null, last: w?.last ?? null, autopilot: w?.autopilot !== false };
+  // unposted LinkedIn drafts are always shown and posted in feed-ready form (older drafts had Hook:/Slide 1: labels)
+  const items = (w?.items ?? []).map((i) => (i.channel === 'LinkedIn' && !i.postedUrl && i.body ? { ...i, body: polishPost(i.body) } : i));
+  return { items, topics: w?.topics ?? [], cycles: w?.cycles ?? 0, updated: w?.updated ?? null, last: w?.last ?? null, autopilot: w?.autopilot !== false };
 }
 async function putWork(env, w) {
   await kv(env).put(KEY, JSON.stringify(w));
