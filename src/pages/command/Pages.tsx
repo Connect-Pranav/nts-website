@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowSquareOut, CheckCircle, CircleNotch, Copy, GitBranch, Heartbeat, LinkedinLogo, MagnifyingGlass, Play, Plus, Rocket, ShieldCheck, Trash, UsersThree, XCircle, YoutubeLogo, InstagramLogo, PaperPlaneTilt, CalendarBlank, PencilSimpleLine } from '@phosphor-icons/react';
 import type { Api, Go } from './shared';
 import { Card, Empty, Pill, ago, toneOf, when } from './shared';
+import { LinkedInPreview } from './LinkedInPreview';
 
 const tool = <T,>(api: Api, name: string, args: object = {}) => api<{ ok: boolean; task: string; result: T }>('/api/dev/tool', { method: 'POST', body: JSON.stringify({ name, args }) }).then((r) => r.result);
 
@@ -461,6 +462,7 @@ export function LinkedInPage({ api }: { api: Api }) {
   const [err, setErr] = useState('');
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [posted, setPosted] = useState<Record<string, string>>({});
+  const [look, setLook] = useState<Record<string, boolean>>({});
   const [li, setLi] = useState<{ configured: boolean; connected: boolean; expired: boolean; name: string | null; expiresAt: string | null; redirectUri: string } | null>(null);
   const load = useCallback(() => {
     api<{ items: WorkItem[] }>('/api/dev/work').then((d) => setItems(d.items.filter((i) => i.channel === 'LinkedIn')));
@@ -582,8 +584,19 @@ export function LinkedInPage({ api }: { api: Api }) {
             {list.map((i) => (
               <li key={i.id} className="li-post">
                 <div className="li-preview">
-                  <p className="dx-label">Preview</p>
-                  <textarea className="dx-input" rows={8} value={edit[i.id] ?? i.body} onChange={(e) => setEdit({ ...edit, [i.id]: e.target.value })} aria-label={`Edit ${i.title}`} disabled={Boolean(i.postedUrl)} />
+                  <div className="lip-tabs" role="tablist" aria-label={`View ${i.title}`}>
+                    <button type="button" role="tab" aria-selected={!look[i.id]} className={look[i.id] ? '' : 'on'} onClick={() => setLook({ ...look, [i.id]: false })}>
+                      <PencilSimpleLine size={13} /> {i.postedUrl ? 'Text' : 'Edit'}
+                    </button>
+                    <button type="button" role="tab" aria-selected={Boolean(look[i.id])} className={look[i.id] ? 'on' : ''} onClick={() => setLook({ ...look, [i.id]: true })}>
+                      <LinkedinLogo size={13} /> LinkedIn preview
+                    </button>
+                  </div>
+                  {look[i.id] ? (
+                    <LinkedInPreview text={edit[i.id] ?? i.body} name={li?.name || 'Your name'} headline="NIKHILs TECH STUDIO" />
+                  ) : (
+                    <textarea className="dx-input" rows={8} value={edit[i.id] ?? i.body} onChange={(e) => setEdit({ ...edit, [i.id]: e.target.value })} aria-label={`Edit ${i.title}`} disabled={Boolean(i.postedUrl)} />
+                  )}
                   <small className="ov-muted">{(edit[i.id] ?? i.body).length} / 3000 characters</small>
                 </div>
                 <div className="li-side">
