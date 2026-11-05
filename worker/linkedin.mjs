@@ -65,7 +65,7 @@ export async function callback(rawEnv, url, fetchImpl = fetch) {
   if (!me.sub) return page('LinkedIn sign-in failed', 'Could not read your LinkedIn member id (add the “Sign In with LinkedIn using OpenID Connect” product).', false);
   await store.saveSetting(rawEnv, { name: 'LI_ACCESS_TOKEN', value: t.access_token });
   await rawEnv.NTS_KV.put('li/oauth/meta', JSON.stringify({ sub: me.sub, name: me.name || `${me.given_name || ''} ${me.family_name || ''}`.trim(), exp: Date.now() + (Number(t.expires_in) || 5_184_000) * 1000, at: nowIso() }));
-  await ops.log(rawEnv, 'system', `LinkedIn connected: ${me.name || me.sub}`);
+  await ops.log(rawEnv, 'system', `LinkedIn connected: ${me.name || me.sub}`, { url: 'https://www.linkedin.com/in/me/' });
   return page('LinkedIn connected', `Signed in as <b>${clean(me.name)}</b>. Approved drafts can now be posted to this profile. LinkedIn asks to sign in again every 60 days.`, true);
 }
 
@@ -99,7 +99,7 @@ export async function publish(rawEnv, itemId, fetchImpl = fetch) {
       it.postedAt = nowIso();
       it.postUrn = urn || undefined;
       await rawEnv.NTS_KV.put('work', JSON.stringify(w));
-      await ops.log(rawEnv, 'publish', `LinkedIn post published: ${it.title}`);
+      await ops.log(rawEnv, 'publish', `LinkedIn post published: ${it.title}`, { url: it.postedUrl });
       return { url: it.postedUrl, urn, version: v };
     }
     const b = await r.json().catch(() => ({}));

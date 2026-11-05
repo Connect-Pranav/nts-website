@@ -11,7 +11,7 @@ export type Overview = {
   kpis: { agents: number; runningTasks: number; completed: number; completedWeek: number; newLeads: number; approvals: number; readyToPost: number; deployments: number | null };
   health: { brain: boolean; engines: string[]; runtime: boolean; integrations: { on: number; total: number; list: { name: string; on: boolean }[] }; automation: string };
   agents: { id: string; name: string; code: string; dept: string; job: string; status: 'running' | 'idle' | 'failed'; last: { title: string; status: string; at: string } | null }[];
-  activity: { id: string; kind: string; text: string; at: string }[];
+  activity: { id: string; kind: string; text: string; at: string; url?: string }[];
   workflows: { id: string; name: string; kind: string; status: string; done: number; total: number; at: string }[];
   growth: { at: string; subscribers: number | null; views: number | null }[];
   usage: { day: string; cloudBrainCalls: number; images: number; tokens: Record<string, { calls: number; input: number; output: number; costUsd: number }> };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { InstagramLogo, XLogo, WarningCircle, MagnifyingGlass, ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop } from '@phosphor-icons/react';
-import type { Api, Go, Overview as OV, Ops } from './shared';
+import { ArrowSquareOut, InstagramLogo, XLogo, WarningCircle, MagnifyingGlass, ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop } from '@phosphor-icons/react';
+import type { Api, Go, Overview as OV, Ops, Page } from './shared';
 import { Card, Pill, ago, toneOf } from './shared';
 
 const STEPS = ['Understand', 'Plan', 'Delegate', 'Execute', 'Monitor', 'Learn'];
@@ -26,6 +26,32 @@ function eventIcon(e: { kind: string; text: string }) {
   if (e.kind === 'approval') return ['#b8892f', <ShieldCheck size={18} weight="fill" />] as const;
   if (/analytic|growth|cycle|report|soma/.test(t) || e.kind === 'cycle') return ['#1f7a52', <ChartBar size={18} weight="fill" />] as const;
   return ['#0f6f75', <Brain size={18} />] as const;
+}
+
+/** Where an activity row leads: the real post/comment/profile on the platform, else the NTS page for it. */
+const SITES = {
+  linkedin: 'https://www.linkedin.com/feed/',
+  instagram: 'https://www.instagram.com/nikhil_techstudio/',
+  youtube: 'https://studio.youtube.com/',
+  x: 'https://x.com/home',
+  site: 'https://nts-website.pravanigroup.workers.dev/',
+};
+function eventTarget(e: { kind: string; text: string; url?: string }): { href: string } | { page: Page } {
+  if (e.url && /^https:\/\//.test(e.url)) return { href: e.url };
+  const t = e.text.toLowerCase();
+  const live = e.kind === 'publish' || e.kind === 'social' || e.kind === 'system' || /repl(y|ied)|posted|published|connected/.test(t);
+  if (/linkedin/.test(t)) return live ? { href: SITES.linkedin } : { page: 'linkedin' };
+  if (/instagram/.test(t)) return live ? { href: SITES.instagram } : { page: 'social' };
+  if (/youtube|comment/.test(t)) return live ? { href: SITES.youtube } : { page: 'social' };
+  if (/\bx\b|twitter|tweet/.test(t)) return live ? { href: SITES.x } : { page: 'work' };
+  if (/deploy|health/.test(t)) return { href: SITES.site };
+  if (/github|test|ci\b|commit/.test(t)) return { page: 'deploy' };
+  if (/lead|scan|signal/.test(t)) return { page: 'leads' };
+  if (e.kind === 'approval') return { page: 'approvals' };
+  if (/analytic|growth|report|soma/.test(t)) return { page: 'analytics' };
+  if (e.kind === 'cycle' || e.kind === 'tool') return { page: 'work' };
+  if (e.kind === 'command') return { page: 'brain' };
+  return { page: 'work' };
 }
 
 function greeting() {
@@ -317,15 +343,34 @@ export function OverviewPage({ api, go, owner }: { api: Api; go: Go; owner: stri
         </Card>
         <Card title="Today’s activity" icon={<ClockCounterClockwise size={20} />} action={<Pill tone="live">Live</Pill>}>
           <ul className="ov-act">
-            {d.activity.slice(0, 7).map((e) => (
-              <li key={e.id}>
-                <span className="ov-act__ic" style={{ background: eventIcon(e)[0] }}>
-                  {eventIcon(e)[1]}
-                </span>
-                <span>{e.text}</span>
-                <small>{ago(e.at)}</small>
-              </li>
-            ))}
+            {d.activity.slice(0, 7).map((e) => {
+              const to = eventTarget(e);
+              const body = (
+                <>
+                  <span className="ov-act__ic" style={{ background: eventIcon(e)[0] }}>
+                    {eventIcon(e)[1]}
+                  </span>
+                  <span>
+                    {e.text}
+                    {'href' in to && <ArrowSquareOut size={12} className="ov-act__out" aria-label="opens in a new tab" />}
+                  </span>
+                  <small>{ago(e.at)}</small>
+                </>
+              );
+              return (
+                <li key={e.id}>
+                  {'href' in to ? (
+                    <a className="ov-act__row" href={to.href} target="_blank" rel="noreferrer">
+                      {body}
+                    </a>
+                  ) : (
+                    <button type="button" className="ov-act__row" onClick={() => go(to.page)}>
+                      {body}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
             {!d.activity.length && <li className="ov-muted">Nothing yet today.</li>}
           </ul>
         </Card>

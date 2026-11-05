@@ -1606,3 +1606,34 @@ body.is-dev {
   gap: 5px;
   opacity: 0.75;
 }
+/* activity rows are links: the real post/profile on the platform, or the NTS page */
+.ov-act li:not(.ov-muted) {
+  display: block;
+}
+.ov-act__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  width: calc(100% + 12px);
+  margin: -4px -6px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ov-act__row:hover,
+.ov-act__row:focus-visible {
+  background: rgba(var(--accent-rgb), 0.1);
+}
+.ov-act__out {
+  margin-left: 5px;
+  vertical-align: -1px;
+  opacity: 0.6;
+}

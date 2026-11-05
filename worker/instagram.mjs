@@ -97,7 +97,7 @@ export async function callback(rawEnv, url, fetchImpl = fetch) {
   const l = await fetchImpl(`${G}/access_token?${new URLSearchParams({ grant_type: 'ig_exchange_token', client_secret: env.IG_APP_SECRET, access_token: short })}`).then((x) => x.json()).catch(() => ({}));
   if (!l.access_token) return page('Instagram sign-in failed', clean(l.error?.message || 'Could not get a long-lived token.'), false);
   const me = await remember(rawEnv, l.access_token, l.expires_in, fetchImpl);
-  await ops.log(rawEnv, 'system', `Instagram connected: @${me.username || '?'}`);
+  await ops.log(rawEnv, 'system', `Instagram connected: @${me.username || '?'}`, { url: `https://www.instagram.com/${me.username || ''}` });
   return page('Instagram connected', `Signed in as <b>@${clean(me.username)}</b>. The token renews itself automatically.`, true);
 }
 
@@ -119,7 +119,7 @@ async function callbackUnified(rawEnv, env, url, code, fetchImpl) {
   }
   await store.saveSetting(rawEnv, { name: 'IG_ACCESS_TOKEN', value: tok });
   await rawEnv.NTS_KV.put('ig/meta', JSON.stringify({ mode: 'fb', id: ig.id, username: ig.username || null, exp: t.expires_in ? Date.now() + Number(t.expires_in) * 1000 : null, refreshedAt: nowIso() }));
-  await ops.log(rawEnv, 'system', `Instagram connected: @${ig.username || ig.id}`);
+  await ops.log(rawEnv, 'system', `Instagram connected: @${ig.username || ig.id}`, { url: ig.username ? `https://www.instagram.com/${ig.username}/` : undefined });
   return page('Instagram connected', `Signed in as <b>@${clean(ig.username || ig.id)}</b>. This sign-in does not expire.`, true);
 }
 

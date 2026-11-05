@@ -91,6 +91,6 @@ export async function publishReply(rawEnv, commentId, text, fetchImpl = fetch) {
   c.status = 'replied';
   c.repliedAt = nowIso();
   await rawEnv.NTS_KV.put('social/comments', JSON.stringify(list));
-  await ops.log(rawEnv, 'publish', `${c.platform === 'instagram' ? 'Instagram' : 'YouTube'} reply posted to ${c.author}`);
+  await ops.log(rawEnv, 'publish', `${c.platform === 'instagram' ? 'Instagram' : 'YouTube'} reply posted to ${c.author}`, { url: c.url });
   return { replyId: c.replyId, url: c.url };
 }

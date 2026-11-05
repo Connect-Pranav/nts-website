@@ -166,7 +166,7 @@ export async function updateItem(env, id, b) {
     it.postedUrl = b.postedUrl || undefined;
     if (b.postedUrl) {
       it.postedAt = nowIso();
-      await log(env, 'publish', `Posted (manual): ${it.title}`);
+      await log(env, 'publish', `Posted (manual): ${it.title}`, { url: it.postedUrl });
     }
   }
   return putWork(env, w);
