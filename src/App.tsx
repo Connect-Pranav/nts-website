@@ -5,6 +5,7 @@ import { SearchDialog } from './components/SearchDialog';
 import { VideoModal } from './components/VideoModal';
 import { Assistant } from './components/Assistant';
 import { IntroSplash } from './components/IntroSplash';
+import { TabDock } from './components/TabDock';
 import { Home } from './pages/Home';
 import { NotFound } from './pages/SimplePage';
 import { About } from './pages/About';
@@ -105,6 +106,7 @@ export function App() {
         {path === '/' ? <Home onWatchIntro={watchIntro} /> : ROUTES[path] ? ROUTES[path].render() : <NotFound />}
       </main>
       <Footer />
+      <TabDock path={path} />
       <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       <Assistant kind="disha" />
       <IntroSplash />

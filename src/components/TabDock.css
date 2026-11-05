@@ -1,0 +1,136 @@
+/* Glassy notched tab dock (mobile only). The bar shape (with a smooth notch) is a clip-path
+   path updated by TabDock.tsx on a spring, so the notch and the floating button glide together. */
+.tdock {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .tdock {
+    --h: 74px;
+    --ease-spring: cubic-bezier(0.34, 1.32, 0.5, 1);
+    display: block;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    height: var(--h);
+    z-index: calc(var(--z-overlay, 1000) - 20);
+  }
+  .tdock__bar {
+    position: absolute;
+    inset: 0;
+    border-radius: 30px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.07)), rgba(36, 38, 42, 0.62);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    /* shape (with the moving notch) comes from clip-path set in TabDock.tsx */
+  }
+  .tdock__edge {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .tdock::before {
+    /* soft floor shadow (outside the clip) */
+    content: '';
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    bottom: -6px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    filter: blur(12px);
+  }
+  [data-theme='light'] .tdock__bar {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.55)), rgba(245, 241, 233, 0.7);
+  }
+  [data-theme='light'] .tdock::before {
+    background: rgba(23, 25, 29, 0.2);
+  }
+  .tdock__bubble {
+    position: absolute;
+    top: -22px;
+    left: 0;
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--on-accent, #17191d);
+    background: radial-gradient(120% 90% at 30% 15%, rgba(255, 255, 255, 0.55), transparent 50%), linear-gradient(160deg, var(--btn-a, #d8b98b), var(--btn-b, #b8935e));
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38), 0 0 0 5px rgba(var(--accent-rgb, 216, 185, 139), 0.14), inset 0 -3px 6px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    will-change: transform;
+  }
+  .tdock__icon {
+    display: grid;
+    animation: tdock-pop 520ms var(--ease-spring);
+  }
+  .tdock__label {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    font: 600 11px/1 var(--font-body);
+    will-change: transform;
+    letter-spacing: 0.02em;
+    color: var(--teal, #d8b98b);
+    pointer-events: none;
+  }
+  .tdock ul {
+    position: relative;
+    list-style: none;
+    margin: 0;
+    padding: 0 30px;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .tdock a {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: var(--text, #f5f1e9);
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.35s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tdock a:active {
+    transform: scale(0.9);
+  }
+  /* the active icon has moved into the bubble */
+  .tdock a.on {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.6);
+  }
+  .tdock a:focus-visible {
+    outline: 2px solid var(--teal, #d8b98b);
+    outline-offset: -6px;
+    border-radius: 16px;
+  }
+
+  /* keep page content and Disha clear of the dock */
+  body:has(.tdock) main {
+    padding-bottom: 110px;
+  }
+  .wa:not(.is-open) {
+    bottom: calc(var(--h, 74px) + 34px) !important;
+  }
+}
+@keyframes tdock-pop {
+  0% {
+    transform: scale(0.4) rotate(-20deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tdock {
+    transition: none;
+  }
+  .tdock__icon {
+    animation: none;
+  }
+}
