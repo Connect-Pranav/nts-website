@@ -1,62 +1,69 @@
-// One-time reset of the LinkedIn board (Nov 2026): the first drafts were carousel scripts with
-// "Hook:/Slide 1:" labels. They are removed and replaced by these feed-ready drafts, which still
-// wait for owner approval. Nothing is posted automatically.
-export const RESET_KEY = 'liReset2';
+// One-time reset of the LinkedIn board (Nov 2026). The first drafts were carousel scripts with
+// "Hook:/Slide 1:" labels, and the next set did not follow the Company Blueprint. Both are removed
+// and replaced by these drafts written to the NTS LinkedIn bible (worker/linkedin-bible.mjs).
+// They still wait for owner approval. Nothing is posted automatically.
+export const RESET_KEY = 'liReset3';
 /** Unposted LinkedIn drafts created before this moment are the old format. */
 export const RESET_BEFORE = '2026-11-05T17:00:00Z';
+/** Marker of the drafts added by the previous reset, which are replaced too. */
+export const OLD_RESET_BRAIN = 'reset';
 
 export const FRESH_LINKEDIN = [
   {
-    title: 'Claude interview prep plan',
-    body: `I stopped Googling "how to prepare for a SQL interview". One prompt to Claude gave me a better plan.
+    title: "Daily SQL challenge: GROUP BY + HAVING",
+    body: `Aaj ka SQL challenge. 2 minute lagenge, try karo 👇
 
-Here is the exact workflow:
+Table: orders
+order_id | customer | city | amount
+1 | Asha | Pune | 1200
+2 | Ravi | Delhi | 800
+3 | Asha | Pune | 600
+4 | Meera | Pune | 1500
+5 | Ravi | Delhi | 400
 
-→ Paste the job description and ask: "Which skills will this interview test?"
-→ Ask for a 5-day plan that covers only those skills: joins, indexing, query tuning.
-→ Each day, ask for 3 practice questions and check your answers against its explanation.
-→ On day 5, ask it to run a mock interview and grade you honestly.
+Question: har city ka total sales nikalo, sirf un cities ka jahan total 2,000 se zyada hai.
 
-The plan is not the magic. The daily practice is.
+Hint: GROUP BY + HAVING. Analyst interviews mein ye pattern baar baar aata hai.
 
-A vague goal ("get better at SQL") becomes a clear list of what to do today.
+Apni query comments mein daalo. Solution kal subah share karunga.
 
-What would you ask Claude first before an interview?
-
-#AI #Claude #InterviewPrep #SQL #CareerGrowth`,
+#SQL #DataAnalytics #InterviewPrep #NIKHILsTECHSTUDIO`,
   },
   {
-    title: 'Mock SQL interview with AI',
-    body: `Most people practise SQL by reading answers. Interviews test whether you can explain your answer out loud.
+    title: "Claude as your mock interviewer",
+    body: `Claude se interview plan banwana easy hai. Asli fayda tab hai jab wo tumhara interviewer ban jaaye.
 
-So try this with any AI assistant:
+Ye try karo, sirf 20 minute mein:
 
-→ Tell it: "You are my interviewer. Ask me one SQL question at a time and wait for my answer."
-→ Answer in your own words, as you would in the room.
-→ Ask it to point out what was missing and what a strong answer would add.
-→ Repeat with harder questions on joins, window functions and indexing.
+→ Job description paste karo aur pucho: "Is role ke liye 5 sabse zaroori skills kaun si hain?"
+→ Phir bolo: "Mera SQL interview lo. Ek baar mein ek sawaal, mere jawab ka wait karo."
+→ Har jawab ke baad pucho: "Kya missing tha? Strong answer kaisa hota?"
+→ Jo galat hua, wahi kal phir practice karo.
 
-20 minutes a day of this beats 2 hours of scrolling through solutions.
+Videos dekhne se skill nahi aati. Practice aur feedback se aati hai.
 
-Have you tried a mock interview with AI yet? How did it go?
+NTS mein hum isi idea pe kaam kar rahe hain: learn it from videos, practise it in tools, prove it in interviews.
 
-#SQL #AI #InterviewPrep #DataAnalytics #Careers`,
+Tumne AI ke saath mock interview try kiya hai? Comments mein batao kaisa raha.
+
+#AI #Claude #InterviewPrep #CareerGrowth #NIKHILsTECHSTUDIO`,
   },
   {
-    title: 'Job description to prep checklist',
-    body: `Every job description is a cheat sheet. Most candidates skim it once and close the tab.
+    title: "Building NTS: a practice gym, not a course",
+    body: `Hum 3 log ek simple idea pe kaam kar rahe hain: India ko ek aur course nahi, ek practice gym chahiye.
 
-Use it properly:
+Freshers aur career switchers videos dekh lete hain, phir interview mein SQL query likhte waqt atak jaate hain. Gap knowledge ka nahi, practice ka hai.
 
-→ Copy the job description into Claude or ChatGPT.
-→ Ask: "List the 5 skills this role will test, from most to least important."
-→ For each skill, ask for one question you are likely to face and one project you could show.
-→ Turn that into a one-page checklist and tick it off before the interview.
+Isliye NIKHILs TECH STUDIO pe:
 
-You walk in prepared for this role, not for interviews in general.
+→ 30 Nov tak 100 videos: SQL, Claude aur Grok, Hindi-English mein.
+→ Har SQL video ek daily challenge banega.
+→ SQL Sprint: 30 din, roz 20 minute, browser mein practice, streak aur certificate ke saath.
 
-Which part of interview prep takes you the longest?
+SQL Sprint ka free beta December mein waitlist walon ke liye khulega.
 
-#JobSearch #AI #InterviewTips #CareerGrowth #Productivity`,
+Early access chahiye? Comments mein "SPRINT" likho, waitlist link bhej dunga.
+
+#BuildingInPublic #SQL #CareerGrowth #EdTech #NIKHILsTECHSTUDIO`,
   },
 ];

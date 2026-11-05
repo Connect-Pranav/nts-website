@@ -464,6 +464,7 @@ export function LinkedInPage({ api }: { api: Api }) {
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [posted, setPosted] = useState<Record<string, string>>({});
   const [look, setLook] = useState<Record<string, boolean>>({});
+  const [liFormat, setLiFormat] = useState('auto');
   const [li, setLi] = useState<{ configured: boolean; connected: boolean; expired: boolean; name: string | null; expiresAt: string | null; redirectUri: string } | null>(null);
   const load = useCallback(() => {
     api<{ items: WorkItem[] }>('/api/dev/work').then((d) => setItems(d.items.filter((i) => i.channel === 'LinkedIn')));
@@ -547,7 +548,7 @@ export function LinkedInPage({ api }: { api: Api }) {
             setBusy('new');
             setErr('');
             try {
-              await tool(api, 'nts_create_linkedin_post', { topic, count: 3 });
+              await tool(api, 'nts_create_linkedin_post', { topic, count: 3, format: liFormat });
               setTopic('');
               load();
             } catch (x) {
@@ -560,12 +561,23 @@ export function LinkedInPage({ api }: { api: Api }) {
           <label className="sr-only" htmlFor="li-topic">
             Topic
           </label>
+          <label className="sr-only" htmlFor="li-format">
+            Format
+          </label>
+          <select id="li-format" className="dx-input" style={{ flex: '0 0 210px' }} value={liFormat} onChange={(e) => setLiFormat(e.target.value)}>
+            <option value="auto">Weekly mix (3 pillars)</option>
+            <option value="sql_challenge">Daily SQL challenge</option>
+            <option value="ai_tools">AI tools for real jobs</option>
+            <option value="interview">Interview prep</option>
+            <option value="studio">Behind the studio</option>
+            <option value="story">Success story (real facts only)</option>
+          </select>
           <input id="li-topic" className="dx-input" style={{ flex: 1 }} value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic, e.g. 3 SQL JOIN mistakes freshers make" maxLength={500} />
           <button type="submit" className="dx-btn dx-btn--primary" disabled={busy === 'new'}>
             {busy === 'new' ? 'Writing…' : 'Write 3 drafts'}
           </button>
         </form>
-        <p className="ov-muted">Research → draft → your review → schedule → post. Approved posts go out with “Post now” or automatically at their scheduled time (checked every hour). Personal profile only: Company Page posting needs LinkedIn’s Community Management API review.</p>
+        <p className="ov-muted">Written to the NTS LinkedIn bible from the Company Blueprint: first person as Pranav, the 4 content pillars, one CTA, #NIKHILsTECHSTUDIO. Research → draft → your review → schedule → post. Approved posts go out with “Post now” or automatically at their scheduled time (checked every hour). Personal profile only: Company Page posting needs LinkedIn’s Community Management API review.</p>
         {err && <p className="dx-err">{err}</p>}
       </Card>
       {cal.length > 0 && (

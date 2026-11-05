@@ -7,11 +7,11 @@ const draft = `◆ Hook: "Stop Googling answers."
 ◆ Slide 2: Prompt **Claude**.
 ◆ Takeaway: One prompt, one plan.
 ◆ CTA: What would you ask first?
-#AI #Claude #AI`;
+#AI #Claude #AI #NIKHILsTECHSTUDIO`;
 
 test('polishPost strips script labels and lays the post out for the feed', () => {
   const p = polishPost(draft);
-  assert.equal(p, 'Stop Googling answers.\n\n→ Identify the role.\n→ Prompt Claude.\n\nOne prompt, one plan.\n\nWhat would you ask first?\n\n#AI #Claude');
+  assert.equal(p, 'Stop Googling answers.\n\n→ Identify the role.\n→ Prompt Claude.\n\nOne prompt, one plan.\n\nWhat would you ask first?\n\n#AI #Claude #NIKHILsTECHSTUDIO');
   assert.equal(polishPost(p), p);
   assert.deepEqual(lintPost(p), []);
 });
@@ -23,7 +23,7 @@ test('lintPost flags labels and promised links', () => {
 });
 
 test('labels behind emoji bullets (🔹) are stripped too', () => {
-  const t = '🔹 Hook: "Stop Googling."\n🔹 Slide 1: Identify the role.\n🔹 CTA: Which step is hardest?\n#AI';
-  assert.equal(polishPost(t), 'Stop Googling.\n\n→ Identify the role.\n\nWhich step is hardest?\n\n#AI');
+  const t = '🔹 Hook: "Stop Googling."\n🔹 Slide 1: Identify the role.\n🔹 CTA: Which step is hardest?\n#AI #NIKHILsTECHSTUDIO';
+  assert.equal(polishPost(t), 'Stop Googling.\n\n→ Identify the role.\n\nWhich step is hardest?\n\n#AI #NIKHILsTECHSTUDIO');
   assert.deepEqual(lintPost(polishPost(t)), []);
 });

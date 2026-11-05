@@ -4,7 +4,8 @@
 // approval) or "ready". Approve/reject becomes a lesson in the Brain that every later run reads, approved
 // pieces are kept as examples, and recent topics are never repeated. Cron runs it on autopilot (free).
 import { polishPost } from './postfmt.mjs';
-import { FRESH_LINKEDIN, RESET_BEFORE, RESET_KEY } from './fresh-li.mjs';
+import { bible } from './linkedin-bible.mjs';
+import { FRESH_LINKEDIN, OLD_RESET_BRAIN, RESET_BEFORE, RESET_KEY } from './fresh-li.mjs';
 import { HttpError, newId, nowIso } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
@@ -17,7 +18,7 @@ const CHANNELS = ['LinkedIn', 'Instagram', 'YouTube', 'X', 'All'];
 
 // What each NTS agent owns (ids match agents/registry.json entries with dev: true)
 export const TEAM = {
-  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'Feed-ready LinkedIn text posts for Nikhil Kumar, written exactly as they will be posted: hook as line 1 (under 140 chars), blank lines between short paragraphs, one practical takeaway, a question or follow CTA, 3-5 hashtags on the last line. Never labels like Hook:/Slide 1:/CTA:, never markdown, never promise links or templates that do not exist.' },
+  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'Feed-ready LinkedIn text posts in first person as Pranav Kumar (he runs NTS LinkedIn), following the NTS LINKEDIN BIBLE below, written exactly as they will be posted: hook as line 1 (under 140 chars), blank lines between short paragraphs, one practical takeaway, a question or follow CTA, 3-5 hashtags on the last line. Never labels like Hook:/Slide 1:/CTA:, never markdown, never promise links or templates that do not exist.' },
   ops_lakshmi_growth: { name: 'Social Media Manager', job: 'Instagram Reels and YouTube Shorts scripts in 3 scenes (hook, value, CTA) with on-screen text, captions with hashtags, YouTube title + description + tags, posting slot, and X (Twitter) posts: max 280 characters each, a short thread only when it truly helps (separate tweets with a line "---").' },
   ops_soma_analytics: { name: 'Growth & Analytics', job: 'SEO keywords, what to post next and why, which metric to watch for this piece, one small growth experiment. Never invent numbers; say what to measure instead.' },
 };
@@ -31,6 +32,7 @@ Produce 3 to 5 items across the agents (each agent at least once). Every item is
 If FRESH LEADS are given, add one extra item per lead (agent ops_soma_analytics, channel "All") with "lead_id": a short, genuinely helpful public reply that answers the person's actual question first and mentions the studio only if it truly helps.
 Follow the OWNER RULES and the BRAIN strictly, and learn from RECENT OWNER FEEDBACK. Never invent facts, prices, numbers, results or testimonials; use [placeholders].
 Never write bulk or unsolicited DMs, follow-for-follow, giveaway bait or messages with placeholders like [Follower Name].
+${bible()}
 Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|X|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false,"lead_id":"id or null"}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;
 
 const kv = (env) => {
@@ -45,12 +47,12 @@ export async function getWork(env) {
   const items = (w?.items ?? []).map((i) => (i.channel === 'LinkedIn' && !i.postedUrl && i.body ? { ...i, body: polishPost(i.body) } : i));
   return { [RESET_KEY]: w?.[RESET_KEY] ?? null, items, topics: w?.topics ?? [], cycles: w?.cycles ?? 0, updated: w?.updated ?? null, last: w?.last ?? null, autopilot: w?.autopilot !== false };
 }
-const isOldLinkedInDraft = (i) => i.channel === 'LinkedIn' && !i.postedUrl && Date.parse(i.createdAt) < Date.parse(RESET_BEFORE);
+const isOldLinkedInDraft = (i) => i.channel === 'LinkedIn' && !i.postedUrl && (Date.parse(i.createdAt) < Date.parse(RESET_BEFORE) || i.brain === OLD_RESET_BRAIN);
 /** One-time: drop the old unposted LinkedIn drafts and add fresh feed-ready ones (still waiting for approval). */
 async function resetLinkedIn(env, w) {
   const now = nowIso();
   const kept = (w?.items ?? []).filter((i) => !isOldLinkedInDraft(i));
-  const fresh = FRESH_LINKEDIN.map((p) => ({ id: newId('w'), agent: 'ops_maya_docs', agentName: TEAM.ops_maya_docs?.name || 'LinkedIn Content Writer', channel: 'LinkedIn', title: p.title, body: p.body, status: 'waiting', topic: '', createdAt: now, brain: 'reset', by: 'brain' }));
+  const fresh = FRESH_LINKEDIN.map((p) => ({ id: newId('w'), agent: 'ops_maya_docs', agentName: TEAM.ops_maya_docs?.name || 'LinkedIn Content Writer', channel: 'LinkedIn', title: p.title, body: p.body, status: 'waiting', topic: '', createdAt: now, brain: RESET_KEY, by: 'brain' }));
   const next = { ...(w ?? {}), items: [...fresh, ...kept], updated: now, [RESET_KEY]: now };
   await env.NTS_KV.put(KEY, JSON.stringify(next));
   return next;

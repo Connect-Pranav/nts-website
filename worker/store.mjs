@@ -25,6 +25,7 @@ export const SETTINGS = {
   LI_CLIENT_ID: { label: 'LinkedIn app: Client ID (products: Sign In with LinkedIn using OpenID Connect + Share on LinkedIn)', secret: false, check: (v) => /^[A-Za-z0-9]{8,40}$/.test(v) || 'looks wrong (LinkedIn Client IDs are short letters/numbers)' },
   LI_CLIENT_SECRET: { label: 'LinkedIn app: Primary Client Secret', secret: true, check: (v) => /^[\w.=-]{10,120}$/.test(v) || 'looks incomplete' },
   LI_ACCESS_TOKEN: { label: 'LinkedIn sign-in (set by Connect LinkedIn)', secret: true, internal: true, check: (v) => /^[\w.=~+/-]{20,1000}$/.test(v) || 'invalid token' },
+  WAITLIST_URL: { label: 'SQL Sprint waitlist link (optional) - LinkedIn posts use it as the call to action', secret: false, check: (v) => /^https:\/\/[^\s]{4,300}$/.test(v) || 'must be a full https:// link' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
 };

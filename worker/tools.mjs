@@ -3,6 +3,7 @@
 // Every tool validates input with zod, returns structured JSON and touches real data/integrations.
 // `sensitive: true` tools never run from a plan without owner approval.
 import { polishPost } from './postfmt.mjs';
+import { FORMATS, bible } from './linkedin-bible.mjs';
 import { z } from 'zod';
 import { HttpError } from './util.mjs';
 import { generate } from './providers.mjs';
@@ -92,10 +93,11 @@ export const TOOLS = {
   },
   nts_create_linkedin_post: {
     description: 'LinkedIn Content Writer drafts LinkedIn post(s) on a topic; each draft lands on the Work board waiting for approval.',
-    input: { topic: z.string().min(3).max(500), count: z.number().int().min(1).max(5).optional() },
+    input: { topic: z.string().min(3).max(500), count: z.number().int().min(1).max(5).optional(), format: z.enum(Object.keys(FORMATS)).optional() },
     run: async (env, a) => {
       const n = a.count ?? 1;
-      const r = await runAgent(env, 'ops_maya_docs', `Write ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". ${FEED_READY}`);
+      const settings = await store.withSettings(env);
+      const r = await runAgent(env, 'ops_maya_docs', `${bible(settings.WAITLIST_URL || '')}\n\nFORMAT: ${FORMATS[a.format || 'auto']}${n > 1 && (a.format || 'auto') === 'auto' ? ' Use a different pillar for each post.' : ''}\n\nWrite ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". ${FEED_READY}`);
       const posts = r.text.split(/\n-{3,}\n/).map((x) => polishPost(x.trim())).filter(Boolean).slice(0, n);
       const items = await work.addItems(env, posts.map((body, i) => ({ agent: 'ops_maya_docs', channel: 'LinkedIn', title: `${a.topic.slice(0, 60)}${n > 1 ? ` (${i + 1})` : ''}`, body, status: 'waiting' })), `${r.engine} · ${r.model}`);
       return { drafted: items.length, items: items.map(({ id, title, status }) => ({ id, title, status })) };

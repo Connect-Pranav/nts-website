@@ -21,6 +21,7 @@ export function lintPost(text) {
   const body = lines.filter((l) => l.trim() && !TAGS_LINE.test(l));
   if (body.length > 4 && !/\n\s*\n/.test(t)) issues.push('No blank lines: the post will read as one dense block.');
   if (/link in (the )?comments|download (our|the|my) free|free template|dm me for/i.test(t)) issues.push('Promises a link, download or template: make sure it really exists before posting.');
+  if (t.trim() && !/#NIKHILsTECHSTUDIO\b/i.test(t)) issues.push('Missing the brand hashtag #NIKHILsTECHSTUDIO (NTS LinkedIn bible).');
   return issues;
 }
 
