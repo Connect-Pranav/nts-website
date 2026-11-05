@@ -2,6 +2,7 @@
 // Master Brain's command executor, so the dashboard and Claude Code call exactly the same code.
 // Every tool validates input with zod, returns structured JSON and touches real data/integrations.
 // `sensitive: true` tools never run from a plan without owner approval.
+import { polishPost } from './postfmt.mjs';
 import { z } from 'zod';
 import { HttpError } from './util.mjs';
 import { generate } from './providers.mjs';
@@ -26,6 +27,9 @@ Rules: produce the deliverable as text only; you cannot publish, post, send, spe
   await ops.countTokens(rawEnv, r);
   return { agent: agent.id, text: r.text, engine: r.engine, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens };
 }
+
+/** How a LinkedIn draft must be written: exactly the text that gets posted. */
+const FEED_READY = 'Write each post exactly as it will appear on LinkedIn, ready to paste: line 1 is the hook (under 140 characters, so it shows before "…more"), then a blank line, then short paragraphs or a short "→" list with blank lines between sections, one practical takeaway, and a CTA that is a question or an invite to follow. No labels such as "Hook:", "Slide 1:", "Takeaway:" or "CTA:", no carousel or slide outline, no markdown (** or #headings), no quotes around the hook. Never promise a template, download, link or DM resource that does not exist. 3-5 hashtags on the last line.';
 
 const AGENT_IDS = AGENTS.map((a) => a.id);
 
@@ -91,8 +95,8 @@ export const TOOLS = {
     input: { topic: z.string().min(3).max(500), count: z.number().int().min(1).max(5).optional() },
     run: async (env, a) => {
       const n = a.count ?? 1;
-      const r = await runAgent(env, 'ops_maya_docs', `Write ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". Each: hook line, short lines, one practical takeaway, 3-5 hashtags, one CTA.`);
-      const posts = r.text.split(/\n-{3,}\n/).map((x) => x.trim()).filter(Boolean).slice(0, n);
+      const r = await runAgent(env, 'ops_maya_docs', `Write ${n} LinkedIn post(s) about: ${a.topic}. Separate posts with a line containing only "---". ${FEED_READY}`);
+      const posts = r.text.split(/\n-{3,}\n/).map((x) => polishPost(x.trim())).filter(Boolean).slice(0, n);
       const items = await work.addItems(env, posts.map((body, i) => ({ agent: 'ops_maya_docs', channel: 'LinkedIn', title: `${a.topic.slice(0, 60)}${n > 1 ? ` (${i + 1})` : ''}`, body, status: 'waiting' })), `${r.engine} · ${r.model}`);
       return { drafted: items.length, items: items.map(({ id, title, status }) => ({ id, title, status })) };
     },

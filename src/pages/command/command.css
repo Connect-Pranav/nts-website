@@ -1582,3 +1582,20 @@ body.is-dev {
   color: rgba(0, 0, 0, 0.6);
   font-weight: 600;
 }
+.lip-lint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 180, 80, 0.4);
+  background: rgba(245, 180, 80, 0.08);
+  font-size: 12.5px;
+}
+.lip-lint ul {
+  flex: 1 1 300px;
+  margin: 0;
+  padding-left: 16px;
+}

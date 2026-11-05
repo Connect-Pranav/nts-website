@@ -19,7 +19,7 @@ export const AGENTS = [
     code: 'MAYA',
     dept: 'content',
     covers: ['LinkedIn Content Strategist', 'LinkedIn Writer', 'Content Repurposing'],
-    job: 'LinkedIn posts, carousels and articles for Nikhil Kumar in the NTS voice: one strong hook, practical value, one CTA. Turns one idea into a week of posts and plans the LinkedIn calendar.',
+    job: 'Feed-ready LinkedIn posts for Nikhil Kumar in the NTS voice, written exactly as they will be posted (no Hook:/Slide:/CTA: labels, no markdown): one strong hook line, practical value, one CTA. Turns one idea into a week of posts and plans the LinkedIn calendar.',
     tools: ['nts_create_linkedin_post', 'nts_run_agent', 'nts_search_memory'],
     approval: ['publishing'],
   },

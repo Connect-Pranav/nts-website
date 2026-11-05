@@ -3,6 +3,7 @@
 // NTS agents write the finished deliverables. Everything lands on the Work board as "waiting" (needs owner
 // approval) or "ready". Approve/reject becomes a lesson in the Brain that every later run reads, approved
 // pieces are kept as examples, and recent topics are never repeated. Cron runs it on autopilot (free).
+import { polishPost } from './postfmt.mjs';
 import { HttpError, newId, nowIso } from './util.mjs';
 import { generate, parseJson } from './providers.mjs';
 import * as store from './store.mjs';
@@ -15,7 +16,7 @@ const CHANNELS = ['LinkedIn', 'Instagram', 'YouTube', 'X', 'All'];
 
 // What each NTS agent owns (ids match agents/registry.json entries with dev: true)
 export const TEAM = {
-  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'LinkedIn text posts and carousels for Nikhil Kumar: one strong hook line, short lines, a practical takeaway, 3-5 hashtags, one CTA.' },
+  ops_maya_docs: { name: 'LinkedIn Content Writer', job: 'Feed-ready LinkedIn text posts for Nikhil Kumar, written exactly as they will be posted: hook as line 1 (under 140 chars), blank lines between short paragraphs, one practical takeaway, a question or follow CTA, 3-5 hashtags on the last line. Never labels like Hook:/Slide 1:/CTA:, never markdown, never promise links or templates that do not exist.' },
   ops_lakshmi_growth: { name: 'Social Media Manager', job: 'Instagram Reels and YouTube Shorts scripts in 3 scenes (hook, value, CTA) with on-screen text, captions with hashtags, YouTube title + description + tags, posting slot, and X (Twitter) posts: max 280 characters each, a short thread only when it truly helps (separate tweets with a line "---").' },
   ops_soma_analytics: { name: 'Growth & Analytics', job: 'SEO keywords, what to post next and why, which metric to watch for this piece, one small growth experiment. Never invent numbers; say what to measure instead.' },
 };
@@ -103,7 +104,7 @@ export async function runCycle(rawEnv, { focus = '', by = 'owner' } = {}) {
 export async function addItems(env, list, brain = '') {
   const w = await getWork(env);
   const now = nowIso();
-  const items = list.map((it) => ({ id: newId('w'), agent: it.agent, agentName: TEAM[it.agent]?.name || it.agent, channel: CHANNELS.includes(it.channel) ? it.channel : 'All', title: String(it.title).slice(0, 100), body: String(it.body).slice(0, 2500), status: it.status === 'ready' ? 'ready' : 'waiting', topic: '', createdAt: now, brain, by: 'brain' }));
+  const items = list.map((it) => ({ id: newId('w'), agent: it.agent, agentName: TEAM[it.agent]?.name || it.agent, channel: CHANNELS.includes(it.channel) ? it.channel : 'All', title: String(it.title).slice(0, 100), body: (it.channel === 'LinkedIn' ? polishPost(String(it.body)) : String(it.body)).slice(0, 2500), status: it.status === 'ready' ? 'ready' : 'waiting', topic: '', createdAt: now, brain, by: 'brain' }));
   w.items = [...items, ...w.items].slice(0, MAX_ITEMS);
   w.updated = now;
   await putWork(env, w);

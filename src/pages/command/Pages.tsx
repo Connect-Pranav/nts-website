@@ -5,6 +5,7 @@ import { ArrowSquareOut, CheckCircle, CircleNotch, Copy, GitBranch, Heartbeat, L
 import type { Api, Go } from './shared';
 import { Card, Empty, Pill, ago, toneOf, when } from './shared';
 import { LinkedInPreview } from './LinkedInPreview';
+import { lintPost, polishPost } from '../../../worker/postfmt.mjs';
 
 const tool = <T,>(api: Api, name: string, args: object = {}) => api<{ ok: boolean; task: string; result: T }>('/api/dev/tool', { method: 'POST', body: JSON.stringify({ name, args }) }).then((r) => r.result);
 
@@ -598,6 +599,20 @@ export function LinkedInPage({ api }: { api: Api }) {
                     <textarea className="dx-input" rows={8} value={edit[i.id] ?? i.body} onChange={(e) => setEdit({ ...edit, [i.id]: e.target.value })} aria-label={`Edit ${i.title}`} disabled={Boolean(i.postedUrl)} />
                   )}
                   <small className="ov-muted">{(edit[i.id] ?? i.body).length} / 3000 characters</small>
+                  {!i.postedUrl && lintPost(edit[i.id] ?? i.body).length > 0 && (
+                    <div className="lip-lint" role="status">
+                      <ul>
+                        {lintPost(edit[i.id] ?? i.body).map((m) => (
+                          <li key={m}>{m}</li>
+                        ))}
+                      </ul>
+                      {polishPost(edit[i.id] ?? i.body) !== (edit[i.id] ?? i.body) && (
+                        <button type="button" className="dx-btn" onClick={() => setEdit({ ...edit, [i.id]: polishPost(edit[i.id] ?? i.body) })}>
+                          Fix format
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="li-side">
                   <b>{i.title}</b>
