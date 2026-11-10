@@ -253,8 +253,8 @@ export async function handle(rawEnv, request, url, ctx) {
   }
 
   // Telegram Approvals & Notifications (NTS COMMAND V2.0)
-  if (path === '/api/dev/telegram/status' && method === 'GET') return json(await telegram.getTelegramStatus(rawEnv));
-  if (path === '/api/dev/telegram/test' && method === 'POST') return json(await telegram.testTelegram(rawEnv, (await body(request))?.chatId));
+  if (path === '/api/dev/telegram/status' && method === 'GET') return json(await telegram.getTelegramStatus(env));
+  if (path === '/api/dev/telegram/test' && method === 'POST') return json(await telegram.testTelegram(env, (await body(request))?.chatId));
   if (path === '/api/dev/telegram/simulate' && method === 'POST') return json(await telegram.simulateApprovalTest(rawEnv, await body(request)));
   if (path === '/api/dev/telegram/logs' && method === 'GET') return json({ logs: (await rawEnv.NTS_KV.get('telegram/audit_logs', 'json')) || [] });
 

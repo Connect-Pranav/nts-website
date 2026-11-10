@@ -32,6 +32,9 @@ export const SETTINGS = {
   TWITTER_ACCESS_TOKEN: { label: 'X (Twitter) access token (set by Connect X)', secret: true, internal: true, check: (v) => /^[\w.=~+/-]{20,2000}$/.test(v) || 'invalid token' },
   TWITTER_REFRESH_TOKEN: { label: 'X (Twitter) refresh token (set by Connect X)', secret: true, internal: true, check: (v) => /^[\w.=~+/-]{20,2000}$/.test(v) || 'invalid token' },
   TWITTER_HANDLE: { label: 'Target X Handle (optional, default @NTS_Nikhil)', secret: false, check: (v) => /^@?[\w]{1,30}$/.test(v) || 'must be a valid Twitter handle' },
+  TELEGRAM_BOT_TOKEN: { label: 'Telegram Bot Token (from @BotFather)', secret: true, check: (v) => /^\d{8,12}:[A-Za-z0-9_-]{25,65}$/.test(v) || 'should look like 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ' },
+  TELEGRAM_CHAT_ID: { label: 'Telegram Admin Chat ID or Channel ID', secret: false, check: (v) => /^(@?[\w-]{3,60}|-?\d{4,25})$/.test(v) || 'must be a numeric chat ID (e.g. 987654321) or @channel' },
+  TELEGRAM_ADMIN_IDS: { label: 'Authorized Telegram Admin User IDs (comma-separated)', secret: false, check: (v) => /^[\w\d,\s-]+$/.test(v) || 'must be a Telegram user ID or comma-separated IDs' },
   WAITLIST_URL: { label: 'SQL Sprint waitlist link (optional) - LinkedIn posts use it as the call to action', secret: false, check: (v) => /^https:\/\/[^\s]{4,300}$/.test(v) || 'must be a full https:// link' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
@@ -95,10 +98,11 @@ export async function listSettings(env) {
 }
 
 export async function saveSetting(env, body) {
-  const name = String(body?.name || '');
+  const name = String(body?.name || body?.key || '');
   const def = SETTINGS[name];
   if (!def) throw new HttpError(400, 'Unknown setting.');
-  const value = String(body?.value ?? '').trim();
+  let value = String(body?.value ?? '').trim();
+  if (name === 'TELEGRAM_ADMIN_IDS') value = value.replace(/\s+/g, '');
   if (!value) throw new HttpError(400, 'Enter a value.');
   if (/\s/.test(value) || value.length > (def.internal || name === 'IG_ACCESS_TOKEN' ? 1000 : 300)) throw new HttpError(400, `${name}: no spaces, max 300 characters.`);
   const ok = def.check(value);

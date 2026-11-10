@@ -68,9 +68,9 @@ export function TelegramApprovalsPage({ api }: { api: Api }) {
     setBusy('save');
     setMsg(null);
     try {
-      if (botToken) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ key: 'TELEGRAM_BOT_TOKEN', value: botToken }) });
-      if (chatId) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ key: 'TELEGRAM_CHAT_ID', value: chatId }) });
-      if (adminIds) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ key: 'TELEGRAM_ADMIN_IDS', value: adminIds }) });
+      if (botToken) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ name: 'TELEGRAM_BOT_TOKEN', value: botToken.trim() }) });
+      if (chatId) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ name: 'TELEGRAM_CHAT_ID', value: chatId.trim() }) });
+      if (adminIds) await api('/api/dev/settings', { method: 'POST', body: JSON.stringify({ name: 'TELEGRAM_ADMIN_IDS', value: adminIds.trim() }) });
       setMsg({ text: 'Telegram credentials saved securely to Worker settings.', kind: 'ok' });
       setBotToken('');
       await load();
@@ -224,6 +224,9 @@ export function TelegramApprovalsPage({ api }: { api: Api }) {
                 value={botToken}
                 onChange={(e) => setBotToken(e.target.value)}
               />
+              <span className="ov-muted" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                Obtain by sending <code>/newbot</code> to <strong>@BotFather</strong> on Telegram.
+              </span>
             </div>
 
             <div>
@@ -235,6 +238,9 @@ export function TelegramApprovalsPage({ api }: { api: Api }) {
                 value={chatId}
                 onChange={(e) => setChatId(e.target.value)}
               />
+              <span className="ov-muted" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                Target chat/group to receive approval alerts (find via <strong>@userinfobot</strong>).
+              </span>
             </div>
 
             <div>
@@ -246,6 +252,9 @@ export function TelegramApprovalsPage({ api }: { api: Api }) {
                 value={adminIds}
                 onChange={(e) => setAdminIds(e.target.value)}
               />
+              <span className="ov-muted" style={{ fontSize: 11, display: 'block', marginTop: 4 }}>
+                Your numeric Telegram User ID from <strong>@userinfobot</strong> (do not put Dev Token here).
+              </span>
             </div>
           </div>
 
