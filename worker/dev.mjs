@@ -18,6 +18,7 @@ import * as ig from './instagram.mjs';
 import * as autoreply from './autoreply.mjs';
 import * as quiz from './quiz-campaign.mjs';
 import * as telegram from './telegram.mjs';
+import * as twitter from './twitter.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -153,9 +154,41 @@ export async function handle(rawEnv, request, url, ctx) {
   if (path === '/api/dev/instagram/analytics' && method === 'GET') return json(await ig.analytics(rawEnv));
   if (path === '/api/dev/linkedin' && method === 'GET') return json(await li.status(rawEnv, url.origin));
   if (path === '/api/dev/linkedin/connect' && method === 'POST') return json(await li.start(rawEnv, url.origin));
-  if (path === '/api/dev/linkedin' && method === 'DELETE') return json(await li.disconnect(rawEnv));
+  if (path === '/api/dev/linkedin/DELETE' || (path === '/api/dev/linkedin' && method === 'DELETE')) return json(await li.disconnect(rawEnv));
   const lp = path.match(/^\/api\/dev\/linkedin\/publish\/(w_[a-z0-9]{10,40})$/);
   if (lp && method === 'POST') return json(await li.publish(rawEnv, lp[1]));
+
+  // X (Twitter) Workspace API
+  if (path === '/api/dev/x' && method === 'GET') return json(await twitter.status(rawEnv, url.origin));
+  if (path === '/api/dev/x/connect' && method === 'POST') return json(await twitter.start(rawEnv, url.origin));
+  if (path === '/api/dev/x' && method === 'DELETE') return json(await twitter.disconnect(rawEnv));
+  if (path === '/api/dev/x/feed' && method === 'GET') return json(await twitter.getFeed(rawEnv, { tab: url.searchParams.get('tab') || 'for_you' }));
+  if (path === '/api/dev/x/trends' && method === 'GET') return json({ trends: twitter.TRENDING_TOPICS, suggestions: twitter.SUGGESTED_ACCOUNTS });
+  if (path === '/api/dev/x/publish' && method === 'POST') {
+    const b = await body(request);
+    if (b?.simulate) return json(await twitter.simulatePost(rawEnv, b));
+    return json(await twitter.publishTweet(rawEnv, b));
+  }
+  if (path === '/api/dev/x/generate' && method === 'POST') {
+    const b = await body(request);
+    const agentName = b?.agent || 'LAKSHMI';
+    const topic = b?.topic || 'SQL query optimization tips';
+    const type = b?.type || 'post';
+
+    let prompt = '';
+    if (type === 'hook') {
+      prompt = `Act as AGNI, NTS Hook Specialist. Generate 3 compelling, punchy X/Twitter opening hooks (under 140 chars each) for a post on: "${topic}". Format as 3 bullet points.`;
+    } else if (type === 'thread') {
+      prompt = `Act as VYASA, NTS Thread Specialist. Write a high-value 3-part educational X/Twitter thread about: "${topic}". Each tweet must be under 260 chars. Format: 1/3, 2/3, 3/3.`;
+    } else if (type === 'reply') {
+      prompt = `Act as REPLY agent for NTS COMMAND. Draft a thoughtful, technical reply (under 240 chars) to this post: "${topic}".`;
+    } else {
+      prompt = `Act as LAKSHMI, NTS Social Media Manager. Write an engaging technical X/Twitter post (under 260 chars) on: "${topic}". Include 2 relevant hashtags like #SQL #TechCareers.`;
+    }
+
+    const res = await generate(env, prompt, { agent: agentName, maxTokens: 400 });
+    return json({ result: res.text, agent: agentName, type });
+  }
   if (path === '/api/dev/youtube' && method === 'GET') return json(await yt.status(rawEnv, url.origin));
   if (path === '/api/dev/youtube/connect' && method === 'POST') return json(await yt.start(rawEnv, url.origin));
   if (path === '/api/dev/youtube' && method === 'DELETE') return json(await yt.disconnect(rawEnv));

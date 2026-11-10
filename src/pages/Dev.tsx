@@ -1,10 +1,11 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, ListChecks, LockKey, Moon, PaperPlaneTilt, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
+import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, ListChecks, LockKey, Moon, PaperPlaneTilt, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, XLogo, ChatsCircle } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
 import { AnalyticsPanel, InstagramAnalytics, SignalsPanel } from './DevInsights';
 import { OverviewPage } from './command/Overview';
 import { TelegramApprovalsPage } from './command/TelegramApprovals';
+import { TwitterWorkspace } from './command/TwitterWorkspace';
 import { BrainPage } from './command/BrainPage';
 import { AgentsPage, ApprovalsPage, DeployPage, LeadsPage, LinkedInPage, MemorySearch, SocialPage, TasksBoard } from './command/Pages';
 import { QuizStudio } from './command/QuizStudio';
@@ -49,6 +50,7 @@ const NAV: [Tab, string, typeof Robot][][] = [
   [
     ['leads', 'Leads & CRM', UsersThree],
     ['linkedin', 'LinkedIn Studio', LinkedinLogo],
+    ['x', 'X (Twitter)', XLogo],
     ['quiz', 'Quiz Studio', ListChecks],
     ['social', 'Social Engagement', ChatsCircle],
     ['analytics', 'Analytics', ChartLineUp],
@@ -323,6 +325,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
         {tab === 'approvals' && <ApprovalsPage api={bound} go={go} />}
         {tab === 'leads' && <LeadsPage api={bound} />}
         {tab === 'linkedin' && <LinkedInPage api={bound} />}
+        {tab === 'x' && <TwitterWorkspace api={bound} />}
         {tab === 'quiz' && <QuizStudio api={bound} />}
         {tab === 'social' && <SocialPage api={bound} />}
         {tab === 'analytics' && (

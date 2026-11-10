@@ -160,6 +160,14 @@ export default {
         return json({ error: e.status ? e.message : 'Sign-in failed.' }, e.status || 500);
       }
     }
+    if (url.pathname === '/api/x/callback' && request.method === 'GET') {
+      try {
+        const twitter = await import('./twitter.mjs');
+        return await twitter.callback(env, url);
+      } catch (e) {
+        return json({ error: e.status ? e.message : 'Sign-in failed.' }, e.status || 500);
+      }
+    }
     if (url.pathname === '/api/telegram/webhook' && request.method === 'POST') {
       try {
         const { handleTelegramWebhook } = await import('./telegram.mjs');

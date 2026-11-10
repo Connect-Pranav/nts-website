@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 export type Api = <T>(path: string, init?: RequestInit) => Promise<T>;
 export type Go = (page: Page, arg?: string) => void;
-export type Page = 'overview' | 'brain' | 'agents' | 'work' | 'approvals' | 'telegram' | 'leads' | 'linkedin' | 'quiz' | 'social' | 'analytics' | 'deploy' | 'memory' | 'settings';
+export type Page = 'overview' | 'brain' | 'agents' | 'work' | 'approvals' | 'telegram' | 'leads' | 'linkedin' | 'x' | 'quiz' | 'social' | 'analytics' | 'deploy' | 'memory' | 'settings';
 
 export type Ops = { mode: 'manual' | 'assisted' | 'autonomous'; paused: boolean };
 export type Overview = {
