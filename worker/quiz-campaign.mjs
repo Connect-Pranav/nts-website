@@ -277,6 +277,7 @@ export function getDb(env) {
 
 function createKvDb(kv) {
   let cache = null;
+  let batchMode = false;
   const load = async () => {
     if (!cache) {
       cache = (await kv.get('quiz/state', 'json')) || {
@@ -289,6 +290,7 @@ function createKvDb(kv) {
     return cache;
   };
   const save = async () => {
+    if (batchMode) return;
     if (cache) await kv.put('quiz/state', JSON.stringify(cache));
   };
 
@@ -410,7 +412,13 @@ function createKvDb(kv) {
       };
     },
     async batch(stmts) {
-      for (const st of stmts) await st.run();
+      batchMode = true;
+      try {
+        for (const st of stmts) await st.run();
+      } finally {
+        batchMode = false;
+      }
+      if (cache) await kv.put('quiz/state', JSON.stringify(cache));
     },
   };
 }

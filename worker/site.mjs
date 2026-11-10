@@ -178,7 +178,8 @@ export default {
       try {
         return await dev.handle(env, request, url, ctx);
       } catch (e) {
-        return json({ error: e.status ? e.message : 'Something went wrong.' }, e.status || 500);
+        console.error('[dev error]', e);
+        return json({ error: e.message || 'Something went wrong.' }, e.status || 500);
       }
     }
     if (url.pathname.startsWith('/api/')) return json({ error: 'Not found' }, 404);
