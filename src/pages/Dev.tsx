@@ -4,7 +4,6 @@ import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple,
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
 import { AnalyticsPanel, InstagramAnalytics, SignalsPanel } from './DevInsights';
 import { OverviewPage } from './command/Overview';
-import { CommandCenterV2 } from './command/CommandCenterV2';
 import { TelegramApprovalsPage } from './command/TelegramApprovals';
 import { BrainPage } from './command/BrainPage';
 import { AgentsPage, ApprovalsPage, DeployPage, LeadsPage, LinkedInPage, MemorySearch, SocialPage, TasksBoard } from './command/Pages';
@@ -40,14 +39,14 @@ async function api<T>(token: string, path: string, init: RequestInit = {}): Prom
 
 const NAV: [Tab, string, typeof Robot][][] = [
   [
-    ['overview', 'Command Centre', House],
-    ['agents', 'Agents (32)', Robot],
+    ['overview', 'Overview', House],
+    ['brain', 'NTS Brain (MCP)', Brain],
+    ['agents', 'Agents', Robot],
     ['work', 'Work & Tasks', Kanban],
     ['approvals', 'Approvals', ShieldCheck],
     ['telegram', 'Telegram Approvals', PaperPlaneTilt],
   ],
   [
-    ['brain', 'NTS Brain (MCP)', Brain],
     ['leads', 'Leads & CRM', UsersThree],
     ['linkedin', 'LinkedIn Studio', LinkedinLogo],
     ['quiz', 'Quiz Studio', ListChecks],
@@ -77,21 +76,6 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
 
   const [open, setOpen] = useState<Agent | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
-  const [v2Mode, setV2Mode] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('nts-v2-mode') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-  const [marg3dEnabled, setMarg3dEnabled] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('nts-marg-3d') !== 'false';
-    } catch {
-      return true;
-    }
-  });
-  const [telegramStatus, setTelegramStatus] = useState<{ connected: boolean } | null>(null);
 
   const bound = useCallback(<T,>(path: string, init?: RequestInit) => api<T>(token, path, init), [token]);
   const onEngines = useCallback((e: Engines) => setEngines(e), []);
@@ -175,10 +159,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
   }, []);
   useEffect(() => {
     if (!token) return;
-    const poll = () => {
-      api<{ kpis: { approvals: number } }>(token, '/api/dev/overview').then((d) => setApprovals(d.kpis.approvals), () => {});
-      api<{ connected: boolean }>(token, '/api/dev/telegram/status').then((s) => setTelegramStatus(s), () => {});
-    };
+    const poll = () => api<{ kpis: { approvals: number } }>(token, '/api/dev/overview').then((d) => setApprovals(d.kpis.approvals), () => {});
     poll();
     const t = setInterval(poll, 45_000);
     window.addEventListener('nts:work', poll);
@@ -242,7 +223,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           <img src="/img/intro/logo.jpg" alt="" width={34} height={34} />
           <span>
             <span className="nc-brand__t">
-              NTS <b>COMMAND</b> <small style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '1px 5px', borderRadius: 4, fontSize: 10, fontWeight: 700, marginLeft: 4 }}>v2.0</small>
+              NTS <b>COMMAND</b>
             </span>
             <small>NIKHILs TECH STUDIO</small>
           </span>
@@ -254,7 +235,6 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
                 <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => go(k)} title={label}>
                   <I size={19} aria-hidden="true" />
                   <span>{label}</span>
-                  {k === 'quiz' && <small className="nc-badge" style={{ background: '#0284c7', color: '#fff', fontSize: 9 }}>V2</small>}
                   {k === 'approvals' && approvals > 0 && <small className="nc-badge">{approvals}</small>}
                   {k === 'settings' && !engineReady && <i className="dx-dot dx-dot--bad" aria-label="needs setup" />}
                 </button>
@@ -287,7 +267,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
       </aside>
 
       <main className="dx-main nc-main" id="main" tabIndex={-1}>
-        <header className="nc-top" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <header className="nc-top">
           <form
             className="nc-top__cmd"
             onSubmit={(e) => {
@@ -305,83 +285,6 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
             <input id="nc-top-cmd" value={cmd} onChange={(e) => setCmd(e.target.value)} placeholder='Ask NTS Brain anything… e.g. "Create 5 LinkedIn posts for next week"' maxLength={4000} />
             <kbd>Ctrl K</kbd>
           </form>
-
-          {/* V1.0 / V2.0 Mode Preview Switcher */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 9999, padding: '2px 4px', gap: 3 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setV2Mode(false);
-                try { localStorage.setItem('nts-v2-mode', 'false'); } catch {}
-              }}
-              style={{
-                background: !v2Mode ? 'rgba(255,255,255,0.14)' : 'transparent',
-                color: !v2Mode ? '#ffffff' : '#94a3b8',
-                border: 0,
-                borderRadius: 9999,
-                padding: '4px 10px',
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              title="V1.0 Classic Overview"
-            >
-              V1.0
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setV2Mode(true);
-                try { localStorage.setItem('nts-v2-mode', 'true'); } catch {}
-              }}
-              style={{
-                background: v2Mode ? 'linear-gradient(135deg, rgba(245,158,11,0.25), rgba(56,189,248,0.25))' : 'transparent',
-                color: v2Mode ? '#fbbf24' : '#94a3b8',
-                border: v2Mode ? '1px solid rgba(245,158,11,0.4)' : '1px solid transparent',
-                borderRadius: 9999,
-                padding: '4px 11px',
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              title="V2.0 Autonomous Command Centre"
-            >
-              V2.0 Command
-            </button>
-          </div>
-
-          {/* 3D MARG ON / OFF Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setMarg3dEnabled((m) => {
-                const next = !m;
-                try { localStorage.setItem('nts-marg-3d', String(next)); } catch {}
-                return next;
-              });
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 11px',
-              borderRadius: 8,
-              fontSize: 11,
-              fontWeight: 600,
-              background: marg3dEnabled ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${marg3dEnabled ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
-              color: marg3dEnabled ? '#38bdf8' : '#94a3b8',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-            title="Toggle 3D Procedural MARG Mascot Animation"
-          >
-            <span>3D MARG:</span>
-            <b style={{ color: marg3dEnabled ? '#34d399' : '#f87171' }}>{marg3dEnabled ? 'ON' : 'OFF'}</b>
-          </button>
-
           <button type="button" className="nc-bell" onClick={() => go('approvals')} aria-label={`${approvals} approvals waiting`}>
             <Bell size={22} />
             {approvals > 0 && <i />}
@@ -405,25 +308,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           </div>
         )}
 
-        {tab === 'overview' && (
-          v2Mode ? (
-            <CommandCenterV2
-              api={bound}
-              go={go}
-              marg3DEnabled={marg3dEnabled}
-              onToggleMarg3D={() => {
-                setMarg3dEnabled((m) => {
-                  const next = !m;
-                  try { localStorage.setItem('nts-marg-3d', String(next)); } catch {}
-                  return next;
-                });
-              }}
-              telegramConnected={telegramStatus?.connected ?? false}
-            />
-          ) : (
-            <OverviewPage api={bound} go={go} owner={OWNER} />
-          )
-        )}
+        {tab === 'overview' && <OverviewPage api={bound} go={go} owner={OWNER} />}
         {tab === 'telegram' && <TelegramApprovalsPage api={bound} />}
         {tab === 'brain' && <BrainPage key={arg || 'brain'} token={token} api={bound} initial={arg} onConsumed={() => setArg(undefined)} />}
         {tab === 'agents' && <AgentsPage api={bound} focus={arg} onRun={(a) => setOpen({ ...a, enabled: true })} />}
