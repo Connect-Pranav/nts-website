@@ -17,6 +17,7 @@ import * as li from './linkedin.mjs';
 import * as ig from './instagram.mjs';
 import * as autoreply from './autoreply.mjs';
 import * as quiz from './quiz-campaign.mjs';
+import * as telegram from './telegram.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -217,6 +218,12 @@ export async function handle(rawEnv, request, url, ctx) {
     if (qcm && method === 'POST') return json(await quiz.markCommentPosted(qdb, qcm[1]));
     if (path === '/api/dev/quiz/sync' && method === 'POST') return json(await quiz.syncPublishStatus(qdb, rawEnv));
   }
+
+  // Telegram Approvals & Notifications (NTS COMMAND V2.0)
+  if (path === '/api/dev/telegram/status' && method === 'GET') return json(await telegram.getTelegramStatus(rawEnv));
+  if (path === '/api/dev/telegram/test' && method === 'POST') return json(await telegram.testTelegram(rawEnv, (await body(request))?.chatId));
+  if (path === '/api/dev/telegram/simulate' && method === 'POST') return json(await telegram.simulateApprovalTest(rawEnv, await body(request)));
+  if (path === '/api/dev/telegram/logs' && method === 'GET') return json({ logs: (await rawEnv.NTS_KV.get('telegram/audit_logs', 'json')) || [] });
 
   // Run an agent (with the Brain)
   const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);

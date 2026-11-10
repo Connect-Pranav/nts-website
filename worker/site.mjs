@@ -160,6 +160,14 @@ export default {
         return json({ error: e.status ? e.message : 'Sign-in failed.' }, e.status || 500);
       }
     }
+    if (url.pathname === '/api/telegram/webhook' && request.method === 'POST') {
+      try {
+        const { handleTelegramWebhook } = await import('./telegram.mjs');
+        return await handleTelegramWebhook(env, request);
+      } catch (e) {
+        return json({ error: e.message || 'Webhook failed' }, e.status || 500);
+      }
+    }
     if (url.pathname === '/mcp') {
       try {
         return await handleMcp(await withSettings(env), request);
