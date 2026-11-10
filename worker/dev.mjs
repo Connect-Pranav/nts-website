@@ -16,6 +16,7 @@ import * as yt from './youtube.mjs';
 import * as li from './linkedin.mjs';
 import * as ig from './instagram.mjs';
 import * as autoreply from './autoreply.mjs';
+import * as quiz from './quiz-campaign.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -191,6 +192,31 @@ export async function handle(rawEnv, request, url, ctx) {
   if (wi && wi[2] && method === 'POST') return json(await work.decide(rawEnv, wi[1], wi[2], (await body(request))?.reason));
   if (wi && !wi[2] && method === 'DELETE') return json(await work.removeItem(rawEnv, wi[1]));
   if (wi && !wi[2] && method === 'POST') return json(await work.updateItem(rawEnv, wi[1], await body(request)));
+
+  // LinkedIn 30-Day Quiz Campaign (NTS COMMAND V2.0)
+  if (path.startsWith('/api/dev/quiz/')) {
+    const qdb = quiz.getDb(rawEnv);
+    if (path === '/api/dev/quiz/campaigns' && method === 'GET') return json({ campaigns: await quiz.listCampaigns(qdb) });
+    if (path === '/api/dev/quiz/campaign/init' && method === 'POST') return json(await quiz.initDefaultCampaign(qdb, rawEnv));
+    if (path === '/api/dev/quiz/campaign' && method === 'POST') return json(await quiz.createCampaign(qdb, rawEnv, await body(request)));
+    const qca = path.match(/^\/api\/dev\/quiz\/campaign\/([a-z0-9_-]{4,40})\/analytics$/);
+    if (qca && method === 'GET') return json(await quiz.campaignAnalytics(qdb, qca[1]));
+    const qall = path.match(/^\/api\/dev\/quiz\/campaign\/([a-z0-9_-]{4,40})\/approve-all$/);
+    if (qall && method === 'POST') return json(await quiz.approveAll(qdb, rawEnv, qall[1]));
+    const qc = path.match(/^\/api\/dev\/quiz\/campaign\/([a-z0-9_-]{4,40})$/);
+    if (qc && method === 'GET') return json(await quiz.getCampaign(qdb, qc[1]));
+    const qpapp = path.match(/^\/api\/dev\/quiz\/post\/([a-z0-9_-]{4,40})\/approve$/);
+    if (qpapp && method === 'POST') return json(await quiz.approvePost(qdb, rawEnv, qpapp[1]));
+    const qprej = path.match(/^\/api\/dev\/quiz\/post\/([a-z0-9_-]{4,40})\/reject$/);
+    if (qprej && method === 'POST') return json(await quiz.rejectPost(qdb, qprej[1], (await body(request))?.reason));
+    const qpres = path.match(/^\/api\/dev\/quiz\/post\/([a-z0-9_-]{4,40})\/reschedule$/);
+    if (qpres && method === 'POST') return json(await quiz.reschedulePost(qdb, qpres[1], (await body(request))?.scheduledAt));
+    const qp = path.match(/^\/api\/dev\/quiz\/post\/([a-z0-9_-]{4,40})$/);
+    if (qp && method === 'POST') return json(await quiz.updatePost(qdb, qp[1], await body(request)));
+    const qcm = path.match(/^\/api\/dev\/quiz\/comment\/([a-z0-9_-]{4,40})\/posted$/);
+    if (qcm && method === 'POST') return json(await quiz.markCommentPosted(qdb, qcm[1]));
+    if (path === '/api/dev/quiz/sync' && method === 'POST') return json(await quiz.syncPublishStatus(qdb, rawEnv));
+  }
 
   // Run an agent (with the Brain)
   const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);

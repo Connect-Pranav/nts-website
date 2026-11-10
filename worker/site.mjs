@@ -126,7 +126,13 @@ async function socialHourly(env) {
 export default {
   // Cloudflare cron (free): the NTS agent team runs a cycle on autopilot
   async scheduled(event, env, ctx) {
-    if (event.cron === '5 * * * *') return ctx.waitUntil(Promise.all([liOAuth.scheduled(env), socialHourly(env)])); // hourly: due LinkedIn posts + new comments
+    if (event.cron === '5 * * * *') {
+      return ctx.waitUntil(Promise.all([
+        liOAuth.scheduled(env),
+        socialHourly(env),
+        env.DB ? import('./quiz-campaign.mjs').then(m => m.syncPublishStatus(env.DB, env)).catch(e => console.log('[quiz] hourly sync:', e.message)) : Promise.resolve()
+      ])); // hourly: due LinkedIn posts + new comments + quiz sync
+    }
     ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env), liOAuth.scheduled(env), igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))]));
   },
   async fetch(request, env, ctx) {

@@ -1,11 +1,12 @@
 // Dev Mode: a standalone console (no public header/footer). Agents, Brain, Settings + Marg.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, LockKey, Moon, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
+import { ArrowSquareOut, Bell, Brain, Crown, CaretLeft, ChartLineUp, CopySimple, Database, GearSix, House, Kanban, LinkedinLogo, ListChecks, LockKey, Moon, Play, Robot, Rocket, ShieldCheck, SignOut, Sparkle, Sun, UsersThree, X, ChatsCircle } from '@phosphor-icons/react';
 import { BrainPanel, SettingsPanel, WorkPanel } from './DevPanels';
 import { AnalyticsPanel, InstagramAnalytics, SignalsPanel } from './DevInsights';
 import { OverviewPage } from './command/Overview';
 import { BrainPage } from './command/BrainPage';
 import { AgentsPage, ApprovalsPage, DeployPage, LeadsPage, LinkedInPage, MemorySearch, SocialPage, TasksBoard } from './command/Pages';
+import { QuizStudio } from './command/QuizStudio';
 import type { Page } from './command/shared';
 import './command/command.css';
 import { Assistant } from '../components/Assistant';
@@ -46,6 +47,7 @@ const NAV: [Tab, string, typeof Robot][][] = [
   [
     ['leads', 'Leads & CRM', UsersThree],
     ['linkedin', 'LinkedIn Studio', LinkedinLogo],
+    ['quiz', 'Quiz Studio', ListChecks],
     ['social', 'Social Engagement', ChatsCircle],
     ['analytics', 'Analytics', ChartLineUp],
     ['deploy', 'Deployments', Rocket],
@@ -218,7 +220,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
           <img src="/img/intro/logo.jpg" alt="" width={34} height={34} />
           <span>
             <span className="nc-brand__t">
-              NTS <b>dev</b>
+              NTS <b>COMMAND</b> <small style={{ background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '1px 5px', borderRadius: 4, fontSize: 10, fontWeight: 700, marginLeft: 4 }}>v2.0</small>
             </span>
             <small>NIKHILs TECH STUDIO</small>
           </span>
@@ -230,6 +232,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
                 <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => go(k)} title={label}>
                   <I size={19} aria-hidden="true" />
                   <span>{label}</span>
+                  {k === 'quiz' && <small className="nc-badge" style={{ background: '#0284c7', color: '#fff', fontSize: 9 }}>V2</small>}
                   {k === 'approvals' && approvals > 0 && <small className="nc-badge">{approvals}</small>}
                   {k === 'settings' && !engineReady && <i className="dx-dot dx-dot--bad" aria-label="needs setup" />}
                 </button>
@@ -317,6 +320,7 @@ export function Dev({ theme, onToggleTheme }: { theme: 'dark' | 'light'; onToggl
         {tab === 'approvals' && <ApprovalsPage api={bound} go={go} />}
         {tab === 'leads' && <LeadsPage api={bound} />}
         {tab === 'linkedin' && <LinkedInPage api={bound} />}
+        {tab === 'quiz' && <QuizStudio api={bound} />}
         {tab === 'social' && <SocialPage api={bound} />}
         {tab === 'analytics' && (
           <>
