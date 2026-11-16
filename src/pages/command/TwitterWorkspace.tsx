@@ -852,8 +852,10 @@ export function TwitterWorkspace({ api }: TwitterWorkspaceProps) {
                           className="dx-iconbtn"
                           title="Copy Link"
                           onClick={() => {
-                            navigator.clipboard?.writeText(`https://x.com/${tweet.handle}/status/${tweet.id}`);
-                            setMsg({ kind: 'ok', text: 'Tweet link copied to clipboard.' });
+                            const isDemo = tweet.id.startsWith('sim_') || tweet.id.startsWith('tw_');
+                            const link = isDemo ? `https://x.com/${tweet.handle}` : `https://x.com/${tweet.handle}/status/${tweet.id}`;
+                            navigator.clipboard?.writeText(link);
+                            setMsg({ kind: 'ok', text: isDemo ? 'Demo post: profile link copied to clipboard.' : 'Tweet link copied to clipboard.' });
                           }}
                         >
                           <ShareNetwork size={16} />
@@ -863,7 +865,11 @@ export function TwitterWorkspace({ api }: TwitterWorkspaceProps) {
                           type="button"
                           className="dx-iconbtn"
                           title="Open on X"
-                          onClick={() => window.open(`https://x.com/${tweet.handle}/status/${tweet.id}`, '_blank')}
+                          onClick={() => {
+                            const isDemo = tweet.id.startsWith('sim_') || tweet.id.startsWith('tw_');
+                            const url = isDemo ? `https://x.com/${tweet.handle}` : `https://x.com/${tweet.handle}/status/${tweet.id}`;
+                            window.open(url, '_blank');
+                          }}
                         >
                           <ArrowSquareOut size={16} />
                         </button>

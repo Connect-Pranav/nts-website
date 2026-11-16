@@ -14,6 +14,7 @@ export const SITE = {
     youtube: 'https://www.youtube.com/@NikhilsTechStudio',
     instagram: 'https://www.instagram.com/nikhil_techstudio/',
     linkedin: 'https://www.linkedin.com/in/nikhil-kumar-3782a9444',
+    twitter: 'https://x.com/NTS_Nikhil',
   },
 };
 

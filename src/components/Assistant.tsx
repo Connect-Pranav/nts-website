@@ -63,6 +63,8 @@ const LINKS: Record<string, { label: string; href: string }> = {
   youtube: { label: 'YouTube · @NikhilsTechStudio', href: SITE.social.youtube },
   instagram: { label: 'Instagram · @nikhil_techstudio', href: SITE.social.instagram },
   linkedin: { label: 'LinkedIn · Nikhil Kumar', href: SITE.social.linkedin },
+  twitter: { label: 'X (Twitter) · @NTS_Nikhil', href: SITE.social.twitter || 'https://x.com/NTS_Nikhil' },
+  x: { label: 'X (Twitter) · @NTS_Nikhil', href: SITE.social.twitter || 'https://x.com/NTS_Nikhil' },
 };
 const PUBLIC_PAGE_WORDS: [RegExp, string][] = [
   [/\b(home|homepage)\b/i, '/'],
@@ -123,6 +125,31 @@ function chunks(s: string) {
   }
   if (cur.trim()) out.push(cur.trim());
   return out;
+}
+
+function renderFormattedText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, idx) => {
+    if (urlRegex.test(part)) {
+      let cleanUrl = part.replace(/[\u200B-\u200D\uFEFF]/g, '');
+      if (/\[placeholder[^\]]*\]/i.test(cleanUrl)) {
+        cleanUrl = 'https://x.com/NTS_Nikhil';
+      }
+      return (
+        <a
+          key={idx}
+          href={cleanUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#53bdeb', textDecoration: 'underline', wordBreak: 'break-all' }}
+        >
+          {cleanUrl}
+        </a>
+      );
+    }
+    return part;
+  });
 }
 
 function Avatar({ kind, big = false }: { kind: 'disha' | 'marg'; big?: boolean }) {
@@ -699,6 +726,70 @@ export function Assistant({ kind, token = '' }: Props) {
     }
   };
 
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent<HTMLTextAreaElement | HTMLDivElement>) => {
+      const clipboardData = e.clipboardData;
+      if (!clipboardData) return;
+
+      // 1. Image / file paste from clipboard (e.g. screenshots)
+      const items = clipboardData.items;
+      let handledFile = false;
+      if (items && items.length > 0) {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind === 'file') {
+            const file = item.getAsFile();
+            if (file) {
+              if (owner) {
+                e.preventDefault();
+                await pickFile(file);
+                handledFile = true;
+                break;
+              } else {
+                sys('File attachments are available in Dev Assistant (Marg).');
+              }
+            }
+          }
+        }
+      }
+
+      if (handledFile) return;
+
+      // Check clipboardData.files
+      if (clipboardData.files && clipboardData.files.length > 0) {
+        const file = clipboardData.files[0];
+        if (owner) {
+          e.preventDefault();
+          await pickFile(file);
+          return;
+        }
+      }
+
+      // 2. Text paste handling: clean zero-width characters and spaces
+      const pastedText = clipboardData.getData('text');
+      if (pastedText) {
+        const clean = pastedText.replace(/[\u200B-\u200D\uFEFF]/g, '');
+        if (clean !== pastedText) {
+          e.preventDefault();
+          const t = inRef.current;
+          if (t) {
+            const s = t.selectionStart ?? input.length;
+            const en = t.selectionEnd ?? input.length;
+            const next = input.slice(0, s) + clean + input.slice(en);
+            setInput(next.slice(0, 4000));
+            requestAnimationFrame(() => {
+              t.focus();
+              t.setSelectionRange(s + clean.length, s + clean.length);
+            });
+          } else {
+            setInput((prev) => (prev + clean).slice(0, 4000));
+          }
+        }
+      }
+    },
+    [input, owner, sys],
+  );
+
   return (
     <aside className={cls} aria-label={`${c.name} assistant`}>
       {!open ? (
@@ -711,7 +802,7 @@ export function Assistant({ kind, token = '' }: Props) {
           {unread > 0 && <span className="wa-badge">{unread}</span>}
         </button>
       ) : (
-        <div className="wa-win" role="dialog" aria-label={`Chat with ${c.name}`}>
+        <div className="wa-win" role="dialog" aria-label={`Chat with ${c.name}`} onPaste={handlePaste}>
           <header className="wa-head">
             <button type="button" className="wa-icon" onClick={() => (setOpen(false), setFull(false))} aria-label="Close chat">
               <ArrowLeft size={20} />
@@ -882,7 +973,7 @@ export function Assistant({ kind, token = '' }: Props) {
                         <small>{m.file.name}</small>
                       </span>
                     )}
-                    {m.text && <span className="wa-text">{m.text}</span>}
+                    {m.text && <span className="wa-text">{renderFormattedText(m.text)}</span>}
                     <span className="wa-meta">
                       {!mine && (
                         <button type="button" className="wa-play" onClick={() => speak(m.text, undefined, true)} aria-label="Play this message">
@@ -964,9 +1055,10 @@ export function Assistant({ kind, token = '' }: Props) {
                 ref={inRef}
                 rows={1}
                 value={input}
-                maxLength={1500}
+                maxLength={4000}
                 placeholder="Message"
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
