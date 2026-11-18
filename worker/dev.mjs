@@ -166,9 +166,12 @@ export async function handle(rawEnv, request, url, ctx) {
   if (path === '/api/dev/x/trends' && method === 'GET') return json({ trends: twitter.TRENDING_TOPICS, suggestions: twitter.SUGGESTED_ACCOUNTS });
   if (path === '/api/dev/x/publish' && method === 'POST') {
     const b = await body(request);
+    if (b?.scheduledFor) return json(await twitter.schedulePost(rawEnv, b));
     if (b?.simulate) return json(await twitter.simulatePost(rawEnv, b));
     return json(await twitter.publishTweet(rawEnv, b));
   }
+  const xp = path.match(/^\/api\/dev\/x\/publish\/(w_[a-z0-9]{10,40})$/);
+  if (xp && method === 'POST') return json(await twitter.publishWorkItem(rawEnv, xp[1]));
   if (path === '/api/dev/x/generate' && method === 'POST') {
     const b = await body(request);
     const agentName = b?.agent || 'LAKSHMI';

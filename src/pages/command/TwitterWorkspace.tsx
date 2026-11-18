@@ -202,6 +202,27 @@ export function TwitterWorkspace({ api }: TwitterWorkspaceProps) {
     setPosting(true);
     setMsg(null);
     try {
+      if (isScheduled && scheduledTime) {
+        const res = await api<{ ok: boolean; scheduled?: boolean; note?: string }>('/api/dev/x/publish', {
+          method: 'POST',
+          body: JSON.stringify({
+            text: composerText,
+            scheduledFor: new Date(scheduledTime).toISOString(),
+          }),
+        });
+
+        setComposerText('');
+        setThreadList([]);
+        setIsThreadMode(false);
+        setIsScheduled(false);
+        setScheduledTime('');
+        setMsg({
+          kind: 'ok',
+          text: res.note || `Tweet scheduled for ${new Date(scheduledTime).toLocaleString()}. The autonomous engine will publish it on schedule.`,
+        });
+        return;
+      }
+
       const res = await api<{ ok: boolean; url?: string; note?: string }>('/api/dev/x/publish', {
         method: 'POST',
         body: JSON.stringify({
@@ -678,8 +699,22 @@ export function TwitterWorkspace({ api }: TwitterWorkspaceProps) {
                         gap: 6,
                       }}
                     >
-                      {posting ? <CircleNotch size={14} className="spin" /> : <PaperPlaneTilt size={14} weight="fill" />}
-                      <span>{status?.connected ? 'Post to X' : 'Simulate Post'}</span>
+                      {posting ? (
+                        <CircleNotch size={14} className="spin" />
+                      ) : isScheduled && scheduledTime ? (
+                        <CalendarCheck size={14} weight="bold" />
+                      ) : (
+                        <PaperPlaneTilt size={14} weight="fill" />
+                      )}
+                      <span>
+                        {posting
+                          ? 'Posting...'
+                          : isScheduled && scheduledTime
+                          ? 'Schedule Post'
+                          : status?.connected
+                          ? 'Post to X'
+                          : 'Simulate Post'}
+                      </span>
                     </button>
                   </div>
                 </div>

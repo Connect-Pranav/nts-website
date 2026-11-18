@@ -166,6 +166,26 @@ test('X (Twitter): publish validates length, handles idempotency, and dispatches
     );
     const d3 = await r3.json();
     assert.equal(d3.already, true);
+
+    // Test scheduling and cron auto-publishing
+    const schedRes = await site.fetch(
+      req('/api/dev/x/publish', 'POST', {
+        text: 'Scheduled tweet about SQL indexing! #Postgres',
+        scheduledFor: new Date(Date.now() - 1000).toISOString(),
+      }),
+      env,
+      {}
+    );
+    assert.equal(schedRes.status, 200);
+    const schedData = await schedRes.json();
+    assert.equal(schedData.scheduled, true);
+
+    // Run scheduled cron handler
+    await twitter.scheduled(env, async () => new Response(JSON.stringify({ data: { id: 'sched_12345' } }), { status: 200 }));
+    const w = await env.NTS_KV.get('work', 'json');
+    const postedItem = w.items.find((i) => i.id === schedData.id);
+    assert.ok(postedItem.postedUrl);
+    assert.match(postedItem.postedUrl, /sched_12345/);
   } finally {
     globalThis.fetch = origFetch;
   }

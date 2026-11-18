@@ -9,6 +9,7 @@ import { handleMcp } from './mcp.mjs';
 import * as ytOAuth from './youtube.mjs';
 import * as liOAuth from './linkedin.mjs';
 import * as igOAuth from './instagram.mjs';
+import * as xOAuth from './twitter.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -129,11 +130,18 @@ export default {
     if (event.cron === '5 * * * *') {
       return ctx.waitUntil(Promise.all([
         liOAuth.scheduled(env),
+        xOAuth.scheduled(env),
         socialHourly(env),
         env.DB ? import('./quiz-campaign.mjs').then(m => m.syncPublishStatus(env.DB, env)).catch(e => console.log('[quiz] hourly sync:', e.message)) : Promise.resolve()
-      ])); // hourly: due LinkedIn posts + new comments + quiz sync
+      ])); // hourly: due LinkedIn + X posts + new comments + quiz sync
     }
-    ctx.waitUntil(Promise.all([analytics.scheduled(env), work.scheduled(env), liOAuth.scheduled(env), igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))]));
+    ctx.waitUntil(Promise.all([
+      analytics.scheduled(env),
+      work.scheduled(env),
+      liOAuth.scheduled(env),
+      xOAuth.scheduled(env),
+      igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))
+    ]));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

@@ -1,7 +1,7 @@
 // NTS COMMAND — Official X (Twitter) Workspace Backend Integration
 // Full OAuth 2.0 PKCE, X API v2 Publishing, Idempotency, and Multi-Agent Orchestration.
 
-import { HttpError, nowIso } from './util.mjs';
+import { HttpError, nowIso, newId } from './util.mjs';
 import * as store from './store.mjs';
 import * as ops from './ops.mjs';
 
@@ -208,6 +208,54 @@ export async function disconnect(rawEnv) {
   return { connected: false };
 }
 
+/** Automatically refresh expired X (Twitter) OAuth 2.0 access token */
+export async function refreshAccessToken(rawEnv, fetchImpl = fetch) {
+  const env = await store.withSettings(rawEnv);
+  if (!env.TWITTER_REFRESH_TOKEN || !env.TWITTER_CLIENT_ID) return null;
+
+  const headers = { 'content-type': 'application/x-www-form-urlencoded' };
+  if (env.TWITTER_CLIENT_SECRET) {
+    const creds = btoa(`${env.TWITTER_CLIENT_ID}:${env.TWITTER_CLIENT_SECRET}`);
+    headers['authorization'] = `Basic ${creds}`;
+  }
+
+  const tokenParams = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: env.TWITTER_REFRESH_TOKEN,
+    client_id: env.TWITTER_CLIENT_ID,
+  });
+
+  try {
+    const r = await fetchImpl(TOKEN_URL, {
+      method: 'POST',
+      headers,
+      body: tokenParams.toString(),
+    });
+
+    const t = await r.json().catch(() => ({}));
+    if (!r.ok || !t.access_token) {
+      console.log('[x] refresh token failed:', t.error_description || t.error || r.status);
+      return null;
+    }
+
+    await store.saveSetting(rawEnv, { name: 'TWITTER_ACCESS_TOKEN', value: t.access_token });
+    if (t.refresh_token) {
+      await store.saveSetting(rawEnv, { name: 'TWITTER_REFRESH_TOKEN', value: t.refresh_token });
+    }
+
+    if (rawEnv.NTS_KV) {
+      const meta = (await rawEnv.NTS_KV.get('x/oauth/meta', 'json')) || {};
+      meta.exp = Date.now() + (t.expires_in || 7200) * 1000;
+      await rawEnv.NTS_KV.put('x/oauth/meta', JSON.stringify(meta));
+    }
+
+    return t.access_token;
+  } catch (err) {
+    console.log('[x] refresh token error:', err.message);
+    return null;
+  }
+}
+
 /** Publish a real Tweet via X API v2 */
 export async function publishTweet(rawEnv, { text, replyToId, quoteTweetId, idempotencyKey }, fetchImpl = fetch) {
   const env = await store.withSettings(rawEnv);
@@ -218,7 +266,10 @@ export async function publishTweet(rawEnv, { text, replyToId, quoteTweetId, idem
   }
 
   if (meta.exp <= Date.now()) {
-    throw new HttpError(409, 'X access token has expired. Re-authenticate via Connect X.');
+    const refreshed = await refreshAccessToken(rawEnv, fetchImpl);
+    if (!refreshed) {
+      throw new HttpError(409, 'X access token has expired. Re-authenticate via Connect X.');
+    }
   }
 
   // Idempotency check
@@ -289,6 +340,77 @@ export async function simulatePost(rawEnv, { text, replyToId, quoteTweetId }) {
     url: `https://x.com/NTS_Nikhil/status/${simId}`,
     note: 'Simulated post (Dev Mode). Connect real X credentials in settings to post to live X timeline.',
   };
+}
+
+/** Schedule a tweet to be published automatically by the cron runner */
+export async function schedulePost(rawEnv, { text, scheduledFor, title }) {
+  if (!rawEnv.NTS_KV) throw new HttpError(503, 'Storage unavailable.');
+  const cleanText = String(text || '').trim();
+  if (!cleanText) throw new HttpError(400, 'Tweet content cannot be empty.');
+  if (cleanText.length > 280) throw new HttpError(400, 'Tweet exceeds 280 characters limit.');
+
+  const t = Date.parse(scheduledFor);
+  if (!Number.isFinite(t)) throw new HttpError(400, 'Invalid schedule date.');
+
+  const w = (await rawEnv.NTS_KV.get('work', 'json')) || { items: [] };
+  const now = nowIso();
+  const id = newId('w');
+  const item = {
+    id,
+    agent: 'ops_lakshmi_growth',
+    agentName: 'Social Media Manager',
+    channel: 'X',
+    title: String(title || cleanText.slice(0, 40)).slice(0, 80),
+    body: cleanText,
+    status: 'ready',
+    scheduledFor: new Date(t).toISOString(),
+    createdAt: now,
+    by: 'owner',
+  };
+
+  w.items = [item, ...(w.items || [])].slice(0, 150);
+  w.updated = now;
+  await rawEnv.NTS_KV.put('work', JSON.stringify(w));
+  await ops.log(rawEnv, 'schedule', `X post scheduled for ${new Date(t).toISOString()}: "${cleanText.slice(0, 40)}..."`);
+  return { ok: true, scheduled: true, id, scheduledFor: item.scheduledFor, note: `Tweet scheduled successfully for ${new Date(t).toLocaleString()}` };
+}
+
+/** Publish one approved X (Twitter) work item from the Work board. Idempotent. */
+export async function publishWorkItem(rawEnv, itemId, fetchImpl = fetch) {
+  if (!rawEnv.NTS_KV) throw new HttpError(503, 'Storage unavailable.');
+  const w = await rawEnv.NTS_KV.get('work', 'json');
+  const it = w?.items?.find((i) => i.id === itemId);
+  if (!it) throw new HttpError(404, 'Item not found.');
+  if (it.channel !== 'X' && it.channel !== 'Twitter') throw new HttpError(400, 'Only X/Twitter items can be posted here.');
+  if (it.postedUrl) return { already: true, url: it.postedUrl };
+  if (it.status !== 'ready') throw new HttpError(409, 'Approve the draft before posting.');
+
+  const text = String(it.body || it.title || '').trim().slice(0, 280);
+  const res = await publishTweet(rawEnv, { text, idempotencyKey: it.id }, fetchImpl);
+
+  it.postedUrl = res.url;
+  it.postedAt = nowIso();
+  await rawEnv.NTS_KV.put('work', JSON.stringify(w));
+  await ops.log(rawEnv, 'publish', `X post published: "${text.slice(0, 40)}..."`, { url: it.postedUrl });
+  return res;
+}
+
+/** Cron: post approved X drafts whose scheduled time has come. */
+export async function scheduled(env, fetchImpl = fetch) {
+  if (!env.NTS_KV) return;
+  const o = await ops.getOps(env);
+  if (o.paused) return;
+  const w = await env.NTS_KV.get('work', 'json');
+  const due = (w?.items || []).filter(
+    (i) => (i.channel === 'X' || i.channel === 'Twitter') &&
+           i.status === 'ready' &&
+           !i.postedUrl &&
+           i.scheduledFor &&
+           Date.parse(i.scheduledFor) <= Date.now()
+  );
+  for (const it of due.slice(0, 3)) {
+    await publishWorkItem(env, it.id, fetchImpl).catch((e) => console.log('[x] scheduled post failed:', e.message));
+  }
 }
 
 /** Default Curated Timeline Data (Demo data when offline / not connected) */
