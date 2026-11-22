@@ -142,7 +142,7 @@ Formats that work: LinkedIn text post or carousel with one strong hook line; 30-
 Every piece of content ends with one clear call to action.`;
 
 export const DEFAULT_RULES = [
-  'Never invent prices, numbers, results or testimonials; use [placeholders].',
+  'Never invent prices, numbers, results or testimonials; state clearly when data is unavailable instead of fabricating numbers or bracketed placeholders.',
   'Helpful first: no spam, no hard sell, no bulk or unsolicited DMs, no follow-for-follow or giveaway bait.',
   'Nothing is posted or sent without owner approval.',
 ];

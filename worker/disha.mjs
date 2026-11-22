@@ -178,8 +178,11 @@ export async function chat(rawEnv, request, assistant = 'disha') {
   let reply = String(out.reply || '').slice(0, 1500) || 'Hmm, samajh nahi aaya. Dobara bolenge?';
   // Strip zero-width characters that corrupt URLs
   reply = reply.replace(/[\u200B-\u200D\uFEFF]/g, '');
-  // Sanitize any hallucinated placeholder URLs so they don't break with 400
-  reply = reply.replace(/https?:\/\/(?:twitter\.com|x\.com)\/[A-Za-z0-9_]+\/status\/\[[^\]]+\]/gi, 'https://x.com/NTS_Nikhil');
+  // Sanitize any hallucinated placeholder URLs or brackets so they never break with 400
+  reply = reply.replace(/https?:\/\/(?:twitter\.com|x\.com)\/[A-Za-z0-9_]+\/status\/(?:\[[^\]]+\]|%5B[^%]+%5D|placeholder[a-z0-9_-]*)/gi, 'https://x.com/NTS_Nikhil');
+  if (!out.actions?.some((a) => a.type === 'make_image') && /download button below/i.test(reply)) {
+    reply = reply.replace(/click the download button below to view [^.]*\./gi, 'You can view and manage live drafts on the Work board or X workspace.');
+  }
   const say = String(out.say || reply).replace(/\p{Extended_Pictographic}|\uFE0F|\u200D/gu, '').slice(0, 1500);
   return json({ reply, say, actions: cleanActions(out.actions, owner) });
 }

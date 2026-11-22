@@ -40,8 +40,8 @@ export function IntroSplash() {
     }
     const prev = document.documentElement.style.overflow;
     document.documentElement.style.overflow = 'hidden';
-    const toExit = stage === 'play' ? setTimeout(() => setStage('exit'), 3300) : undefined;
-    const toOff = stage === 'exit' ? setTimeout(() => setStage('off'), 650) : undefined;
+    const toExit = stage === 'play' ? setTimeout(() => setStage('exit'), 1300) : undefined;
+    const toOff = stage === 'exit' ? setTimeout(() => setStage('off'), 350) : undefined;
     const skip = () => setStage((s) => (s === 'play' ? 'exit' : s));
     window.addEventListener('keydown', skip);
     return () => {

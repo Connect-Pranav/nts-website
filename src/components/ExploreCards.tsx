@@ -4,9 +4,9 @@ import { onLinkClick } from '../lib/router';
 import './ExploreCards.css';
 
 const CARDS: { title: string; text: string; href: string; icon: Icon }[] = [
-  { title: 'AI Learning', text: 'Build real, job-ready AI skills.', href: '/academy', icon: Brain },
-  { title: 'Practical AI Projects', text: 'Turn ideas into working solutions.', href: '/lab', icon: Stack },
-  { title: 'Career Readiness', text: 'Get future-ready for AI careers.', href: '/academy#career', icon: Briefcase },
+  { title: 'AI Automation & Agents', text: 'Move beyond prompting. Build autonomous agents, pipelines, and production systems.', href: '/academy', icon: Brain },
+  { title: 'Applied SQL & Data Systems', text: 'Solve real business schemas, query bottlenecks, and data transformations in-browser.', href: '/lab', icon: Stack },
+  { title: 'Technical Interview Simulation', text: 'Timed rounds for Data & Business Analysts with AI evaluation and gap analysis.', href: '/academy#career', icon: Briefcase },
 ];
 
 export function ExploreCards() {

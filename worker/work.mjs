@@ -30,7 +30,7 @@ ${Object.entries(TEAM)
   .join('\n')}
 Produce 3 to 5 items across the agents (each agent at least once). Every item is ready to copy and use.
 If FRESH LEADS are given, add one extra item per lead (agent ops_soma_analytics, channel "All") with "lead_id": a short, genuinely helpful public reply that answers the person's actual question first and mentions the studio only if it truly helps.
-Follow the OWNER RULES and the BRAIN strictly, and learn from RECENT OWNER FEEDBACK. Never invent facts, prices, numbers, results or testimonials; use [placeholders].
+Follow the OWNER RULES and the BRAIN strictly, and learn from RECENT OWNER FEEDBACK. Never invent facts, prices, numbers, results or testimonials; never output literal bracketed placeholder strings or fake links.
 Never write bulk or unsolicited DMs, follow-for-follow, giveaway bait or messages with placeholders like [Follower Name].
 ${bible()}
 Return ONLY JSON: {"topic":"max 8 words","why":"max 20 words","items":[{"agent":"agent id","channel":"LinkedIn|Instagram|YouTube|X|All","title":"max 10 words","body":"max 220 words","needs_approval":true|false,"lead_id":"id or null"}],"summary":"max 20 words"}. needs_approval=true for anything that would be published or sent to a person.`;

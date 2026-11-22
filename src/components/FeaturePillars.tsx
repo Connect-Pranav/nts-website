@@ -3,10 +3,10 @@ import type { Icon } from '@phosphor-icons/react';
 import './FeaturePillars.css';
 
 const PILLARS: { title: string; text: string; icon: Icon }[] = [
-  { title: 'Learn', text: 'Practical, real-world skills.', icon: GraduationCap },
-  { title: 'Practice', text: 'Hands-on projects & labs.', icon: Stack },
-  { title: 'Simulate', text: 'Real business & career scenarios.', icon: Play },
-  { title: 'Grow', text: 'Skills, career & opportunities.', icon: ChartBar },
+  { title: 'Learn', text: 'Core principles via free, concise engineering breakdowns.', icon: GraduationCap },
+  { title: 'Practice', text: 'Daily in-browser SQL queries and terminal challenges.', icon: Stack },
+  { title: 'Simulate', text: 'Realistic technical rounds and production business scenarios.', icon: Play },
+  { title: 'Grow', text: 'Verifiable project proof that clears interviews and earns promotion.', icon: ChartBar },
 ];
 
 export function FeaturePillars() {
