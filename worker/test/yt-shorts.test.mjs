@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import site from '../site.mjs';
 import * as ytShorts from '../yt-shorts.mjs';
 import * as canva from '../canva.mjs';
+import { parseJson } from '../providers.mjs';
 
 function makeKV() {
   const m = new Map();
@@ -363,4 +364,13 @@ test('YT Shorts: scheduled cron runs without throwing', async () => {
   const env = baseEnv();
   await ytShorts.scheduled(env);
   assert.ok(true);
+});
+
+test('parseJson: recovers cleanly from bad control characters in string literals', () => {
+  // Raw literal newline inside JSON string (bad control character in standard JSON.parse)
+  const malformed = '{\n  "title": "Claude Code Workflow",\n  "voiceover": "Line 1 of voiceover\nLine 2 of voiceover",\n  "description": "Bullet 1\nBullet 2",\n}';
+  const parsed = parseJson(malformed);
+  assert.equal(parsed.title, 'Claude Code Workflow');
+  assert.ok(parsed.voiceover.includes('Line 1 of voiceover'));
+  assert.ok(parsed.voiceover.includes('Line 2 of voiceover'));
 });

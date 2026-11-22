@@ -192,7 +192,7 @@ Generate the Short Idea with:
 - trend_relevance_rationale: why this matters right now in 2026
 - category: one of 'Work Automation', 'Productivity', 'Sales & Growth', 'Operations', 'Finance & Analytics', 'Agentic AI'`;
 
-  const r = await generate(env, { system, prompt, json: true, maxTokens: 900 });
+  const r = await generate(env, { system, prompt, json: true, maxTokens: 1500 });
   const data = parseJson(r.text) || {};
 
   return {
@@ -262,7 +262,7 @@ Output JSON schema:
   "hashtags": ["#Shorts", "#AIForWork", "#Automation", "#NIKHILsTECHStudio"]
 }`;
 
-  const r = await generate(env, { system, prompt, json: true, maxTokens: 1800 });
+  const r = await generate(env, { system, prompt, json: true, maxTokens: 3000 });
   const res = parseJson(r.text) || {};
 
   return {
@@ -335,7 +335,7 @@ Output JSON schema:
   ]
 }`;
 
-  const r = await generate(env, { system, prompt, json: true, maxTokens: 1800 });
+  const r = await generate(env, { system, prompt, json: true, maxTokens: 3000 });
   const res = parseJson(r.text) || {};
 
   return {

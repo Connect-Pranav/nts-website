@@ -200,14 +200,65 @@ async function cloud(env, { system, prompt, maxTokens, json }, fetchImpl) {
   throw new HttpError(502, `Cloud brain: ${errs.join(' | ') || 'not available'}`);
 }
 
-/** Parse JSON from a model reply, tolerating ```json fences. */
+/** Sanitize raw control characters in string literals and trailing commas so JSON.parse succeeds. */
+function sanitizeJsonString(str) {
+  let inString = false;
+  let isEscaped = false;
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (inString) {
+      if (isEscaped) {
+        out += ch;
+        isEscaped = false;
+      } else if (ch === '\\') {
+        out += ch;
+        isEscaped = true;
+      } else if (ch === '"') {
+        out += ch;
+        inString = false;
+      } else if (ch === '\n') {
+        out += '\\n';
+      } else if (ch === '\r') {
+        out += '\\r';
+      } else if (ch === '\t') {
+        out += '\\t';
+      } else {
+        const code = ch.charCodeAt(0);
+        if (code < 32) {
+          out += ' ';
+        } else {
+          out += ch;
+        }
+      }
+    } else {
+      if (ch === '"') {
+        inString = true;
+      }
+      out += ch;
+    }
+  }
+  return out.replace(/,\s*([}\]])/g, '$1');
+}
+
+/** Parse JSON from a model reply, tolerating fences, unescaped newlines/control chars, and trailing commas. */
 export function parseJson(text) {
+  if (!text) return null;
   const t = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   try {
     return JSON.parse(t);
   } catch {
-    const m = t.match(/\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw new HttpError(502, 'The AI reply was not valid JSON. Try again.');
+    const m = t.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+    const candidate = m ? m[0] : t;
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      try {
+        const sanitized = sanitizeJsonString(candidate);
+        return JSON.parse(sanitized);
+      } catch {
+        throw new HttpError(502, 'The AI reply was not valid JSON. Try again.');
+      }
+    }
   }
 }
