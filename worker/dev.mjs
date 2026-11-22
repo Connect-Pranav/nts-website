@@ -294,6 +294,10 @@ export async function handle(rawEnv, request, url, ctx) {
     const b = await body(request);
     return json(await ytShorts.publishShort(rawEnv, { id: sPub[1], approved: b?.approved ?? true, scheduled_at: b?.scheduled_at }));
   }
+  const sDeliver = path.match(/^\/api\/dev\/shorts\/deliver\/([a-z0-9_-]{4,60})$/);
+  if (sDeliver && method === 'POST') {
+    return json(await ytShorts.deliverShortVideo(rawEnv, sDeliver[1]));
+  }
   if (path === '/api/dev/shorts/daily-cycle' && method === 'POST') {
     return json(await ytShorts.runDailyShortsCycle(rawEnv));
   }

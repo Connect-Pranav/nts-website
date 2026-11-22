@@ -113,6 +113,19 @@ export type ShortItem = {
       layers: Array<{ name: string; type: string; content: string }>;
     };
   };
+  videoDelivery?: {
+    status: 'pending' | 'rendering' | 'ready' | 'uploaded';
+    mp4Filename?: string;
+    mp4FileSize?: string;
+    durationSec?: number;
+    format?: string;
+    voiceover?: string;
+    driveFolderUrl?: string;
+    driveFileUrl?: string;
+    driveFileId?: string;
+    verified?: boolean;
+    deliveredAt?: string;
+  };
 };
 
 export type CalendarEntry = {
@@ -462,6 +475,29 @@ export function YTShortsGenerator({ api }: { api: Api }) {
       loadData();
     } catch (err: any) {
       setActionMessage({ text: err.message || 'Publishing failed.', tone: 'bad' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // GENERATE & UPLOAD FINAL SHORT (MP4) to Google Drive
+  const handleGenerateAndUploadFinalShort = async () => {
+    if (!currentShort) return;
+    setLoading(true);
+    setActionMessage(null);
+    try {
+      const res = await api<any>(`/api/dev/shorts/deliver/${currentShort.id}`, { method: 'POST' });
+      const updated: ShortItem = {
+        ...currentShort,
+        status: 'approved',
+        approvalState: 'approved',
+        videoDelivery: res.videoDelivery,
+      };
+      setCurrentShort(updated);
+      setActionMessage({ text: res.note || 'Finished MP4 video rendered and uploaded to Google Drive FINAL_VIDEOS!', tone: 'ok' });
+      loadData();
+    } catch (err: any) {
+      setActionMessage({ text: err.message || 'Video delivery failed.', tone: 'bad' });
     } finally {
       setLoading(false);
     }
@@ -952,6 +988,121 @@ export function YTShortsGenerator({ api }: { api: Api }) {
                   <button type="button" className="btn-shorts-primary" onClick={handlePublish} disabled={loading || !publishAuthorized}>
                     <Rocket size={18} />
                     {loading ? 'Processing...' : scheduleDate ? 'Schedule Short' : 'Authorize & Dispatch Short'}
+                  </button>
+                </div>
+
+                {/* FINAL VIDEO PRODUCTION & GOOGLE DRIVE DELIVERY */}
+                <div style={{ marginTop: '28px', padding: '18px', background: 'rgba(39, 230, 240, 0.05)', border: '1px solid var(--nc-border)', borderRadius: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div style={{ fontWeight: '700', fontSize: '15px', color: 'var(--nc-bright)' }}>
+                      Final Video Production & Google Drive Delivery
+                    </div>
+                    <span className="badge-status approved">9:16 Vertical · 1080x1920 MP4</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginBottom: '16px' }}>
+                    <div style={{ padding: '8px 10px', background: 'var(--nc-surface)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--nc-text-2)' }}>Topic</div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentShort?.topic || 'NTS Practical AI Short'}</div>
+                    </div>
+                    <div style={{ padding: '8px 10px', background: 'var(--nc-surface)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--nc-text-2)' }}>Script Status</div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--nc-ok)' }}>✓ Script Ready</div>
+                    </div>
+                    <div style={{ padding: '8px 10px', background: 'var(--nc-surface)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--nc-text-2)' }}>Canva Design</div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: currentShort?.canvaSpec ? 'var(--nc-ok)' : 'var(--nc-gold)' }}>
+                        {currentShort?.canvaSpec ? '✓ Spec Ready' : 'Pending'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px 10px', background: 'var(--nc-surface)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--nc-text-2)' }}>Video Render</div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: currentShort?.videoDelivery ? 'var(--nc-ok)' : 'var(--nc-gold)' }}>
+                        {currentShort?.videoDelivery ? '✓ MP4 Ready' : 'Ready to Render'}
+                      </div>
+                    </div>
+                    <div style={{ padding: '8px 10px', background: 'var(--nc-surface)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--nc-text-2)' }}>Google Drive</div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: currentShort?.videoDelivery?.driveFileUrl ? 'var(--nc-ok)' : 'var(--nc-gold)' }}>
+                        {currentShort?.videoDelivery?.driveFileUrl ? '✓ FINAL_VIDEOS' : 'Pending'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {currentShort?.videoDelivery?.driveFileUrl && (
+                    <div style={{ padding: '14px', background: 'rgba(53, 214, 154, 0.12)', border: '1px solid var(--nc-ok)', borderRadius: '8px', marginBottom: '16px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--nc-ok)', marginBottom: '4px' }}>
+                        ✓ Final Playable MP4 Video in Google Drive!
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--nc-text-2)', marginBottom: '10px' }}>
+                        File: <b>{currentShort.videoDelivery.mp4Filename}</b> ({currentShort.videoDelivery.mp4FileSize} · {currentShort.videoDelivery.durationSec}s · Male Natural Indian English Voice)
+                      </div>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <a
+                          href={currentShort.videoDelivery.driveFileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'var(--nc-ok)',
+                            color: '#03191d',
+                            fontWeight: '700',
+                            padding: '8px 14px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          ▶ Open Video in Google Drive
+                        </a>
+                        <a
+                          href="https://drive.google.com/drive/folders/1iPltnBqBuVtjViP7ONSmf_q8l0_Bgv7J"
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(255,255,255,0.08)',
+                            color: '#fff',
+                            fontWeight: '600',
+                            padding: '8px 14px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            textDecoration: 'none',
+                          }}
+                        >
+                          📁 Open FINAL_VIDEOS Folder
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateAndUploadFinalShort}
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      background: 'linear-gradient(135deg, #27e6f0 0%, #17a2b8 100%)',
+                      color: '#03191d',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(39, 230, 240, 0.3)',
+                    }}
+                  >
+                    <Rocket size={18} weight="bold" />
+                    {loading ? 'RENDERING & UPLOADING MP4...' : 'GENERATE & UPLOAD FINAL SHORT'}
                   </button>
                 </div>
               </div>
