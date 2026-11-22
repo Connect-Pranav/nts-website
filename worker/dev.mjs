@@ -310,6 +310,19 @@ export async function handle(rawEnv, request, url, ctx) {
   if (path === '/api/dev/shorts/canva/generate' && method === 'POST') {
     return json(await canva.generateCanvaDesignSpec(rawEnv, await body(request)));
   }
+  if (path === '/api/dev/canva/status' && method === 'GET') {
+    return json(await canva.getCanvaStatus(rawEnv));
+  }
+  if (path === '/api/dev/canva/design' && method === 'POST') {
+    return json(await canva.createVideoDesign(rawEnv, await body(request)));
+  }
+  if (path === '/api/dev/canva/export' && method === 'POST') {
+    return json(await canva.exportVideo(rawEnv, await body(request)));
+  }
+  const cExp = path.match(/^\/api\/dev\/canva\/export\/([a-z0-9_-]{4,60})$/);
+  if (cExp && method === 'GET') {
+    return json(await canva.getExportStatus(rawEnv, { exportId: cExp[1] }));
+  }
 
   // Run an agent (with the Brain)
   const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);

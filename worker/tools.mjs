@@ -16,6 +16,7 @@ import * as integ from './integrations.mjs';
 import { generateImage } from './image.mjs';
 import { AGENTS, DEPARTMENTS, agentById } from './team.mjs';
 import { SHORTS_MCP_TOOLS } from './yt-shorts.mjs';
+import { CANVA_MCP_TOOLS } from './canva.mjs';
 
 async function runAgent(rawEnv, agentId, task) {
   const agent = agentById(agentId);
@@ -220,6 +221,7 @@ export const TOOLS = {
     run: async (env, a) => ops.setOps(env, a),
   },
   ...SHORTS_MCP_TOOLS,
+  ...CANVA_MCP_TOOLS,
 };
 
 export const toolNames = Object.keys(TOOLS);
@@ -250,6 +252,11 @@ const LABEL = {
   generate_production_package: 'Production package created',
   save_content: 'Short content saved',
   publish_short: 'Short published/scheduled',
+  canva_get_status: 'Canva status checked',
+  canva_create_video_design: 'Canva video design created',
+  canva_export_video: 'Canva video export initiated',
+  canva_get_export_status: 'Canva export status retrieved',
+  canva_generate_video_spec: 'Canva video spec generated',
 };
 
 /** Validate + run a tool; records a task and an activity line. */

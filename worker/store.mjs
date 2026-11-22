@@ -38,6 +38,9 @@ export const SETTINGS = {
   WAITLIST_URL: { label: 'SQL Sprint waitlist link (optional) - LinkedIn posts use it as the call to action', secret: false, check: (v) => /^https:\/\/[^\s]{4,300}$/.test(v) || 'must be a full https:// link' },
   GEMINI_MODEL: { label: 'Gemini model (optional, default gemini-flash-latest)', secret: false, check: (v) => /^[a-z0-9][a-z0-9.\-]{2,60}$/.test(v) || 'must be a model ID like gemini-2.5-flash' },
   GROQ_MODEL: { label: 'Groq model (optional, default openai/gpt-oss-120b)', secret: false, check: (v) => /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,80}$/.test(v) || 'must be a model ID' },
+  CANVA_API_KEY: { label: 'Canva API Key / Access Token (from Canva Developer Portal)', secret: true, check: (v) => /^[\w.-]{10,500}$/.test(v) || 'invalid Canva API Key' },
+  CANVA_CLIENT_ID: { label: 'Canva OAuth 2.0 Integration Client ID', secret: false, check: (v) => /^[\w.-]{8,100}$/.test(v) || 'invalid Canva Client ID' },
+  CANVA_CLIENT_SECRET: { label: 'Canva OAuth 2.0 Integration Client Secret', secret: true, check: (v) => /^[\w.-]{10,120}$/.test(v) || 'looks incomplete' },
 };
 
 const kv = (env) => {
