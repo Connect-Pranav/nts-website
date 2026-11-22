@@ -19,6 +19,8 @@ import * as autoreply from './autoreply.mjs';
 import * as quiz from './quiz-campaign.mjs';
 import * as telegram from './telegram.mjs';
 import * as twitter from './twitter.mjs';
+import * as ytShorts from './yt-shorts.mjs';
+import * as canva from './canva.mjs';
 import { TOOLS, callTool } from './tools.mjs';
 
 // Best-effort, per-isolate limits (no database needed). Cloudflare also rate-limits at the edge.
@@ -260,6 +262,50 @@ export async function handle(rawEnv, request, url, ctx) {
   if (path === '/api/dev/telegram/test' && method === 'POST') return json(await telegram.testTelegram(env, (await body(request))?.chatId));
   if (path === '/api/dev/telegram/simulate' && method === 'POST') return json(await telegram.simulateApprovalTest(rawEnv, await body(request)));
   if (path === '/api/dev/telegram/logs' && method === 'GET') return json({ logs: (await rawEnv.NTS_KV.get('telegram/audit_logs', 'json')) || [] });
+
+  // YT Shorts Generator API (Module: nts-yt-shorts-generator)
+  if (path === '/api/dev/shorts/items' && method === 'GET') return json({ items: await ytShorts.getShortsItems(rawEnv) });
+  const sItem = path.match(/^\/api\/dev\/shorts\/item\/([a-z0-9_-]{4,60})$/);
+  if (sItem && method === 'GET') {
+    const item = await ytShorts.getShortItem(rawEnv, sItem[1]);
+    if (!item) throw new HttpError(404, 'Short not found.');
+    return json({ item });
+  }
+  if (path === '/api/dev/shorts/save' && method === 'POST') {
+    return json(await ytShorts.saveContent(rawEnv, await body(request)));
+  }
+  if (sItem && method === 'DELETE') {
+    return json(await ytShorts.deleteShortItem(rawEnv, sItem[1]));
+  }
+  if (path === '/api/dev/shorts/idea' && method === 'POST') {
+    return json(await ytShorts.generateShortIdea(rawEnv, await body(request)));
+  }
+  if (path === '/api/dev/shorts/script' && method === 'POST') {
+    return json(await ytShorts.generateShortScript(rawEnv, await body(request)));
+  }
+  if (path === '/api/dev/shorts/storyboard' && method === 'POST') {
+    return json(await ytShorts.generateStoryboard(rawEnv, await body(request)));
+  }
+  if (path === '/api/dev/shorts/package' && method === 'POST') {
+    return json(await ytShorts.generateProductionPackage(rawEnv, await body(request)));
+  }
+  const sPub = path.match(/^\/api\/dev\/shorts\/publish\/([a-z0-9_-]{4,60})$/);
+  if (sPub && method === 'POST') {
+    const b = await body(request);
+    return json(await ytShorts.publishShort(rawEnv, { id: sPub[1], approved: b?.approved ?? true, scheduled_at: b?.scheduled_at }));
+  }
+  if (path === '/api/dev/shorts/daily-cycle' && method === 'POST') {
+    return json(await ytShorts.runDailyShortsCycle(rawEnv));
+  }
+  if (path === '/api/dev/shorts/calendar' && method === 'GET') {
+    return json({ calendar: await ytShorts.getShortsCalendar(rawEnv) });
+  }
+  if (path === '/api/dev/shorts/canva/status' && method === 'GET') {
+    return json(await canva.getCanvaStatus(rawEnv));
+  }
+  if (path === '/api/dev/shorts/canva/generate' && method === 'POST') {
+    return json(await canva.generateCanvaDesignSpec(rawEnv, await body(request)));
+  }
 
   // Run an agent (with the Brain)
   const m = path.match(/^\/api\/dev\/agents\/([a-z0-9_]{2,64})\/run$/);

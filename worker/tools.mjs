@@ -15,6 +15,7 @@ import * as ops from './ops.mjs';
 import * as integ from './integrations.mjs';
 import { generateImage } from './image.mjs';
 import { AGENTS, DEPARTMENTS, agentById } from './team.mjs';
+import { SHORTS_MCP_TOOLS } from './yt-shorts.mjs';
 
 async function runAgent(rawEnv, agentId, task) {
   const agent = agentById(agentId);
@@ -218,6 +219,7 @@ export const TOOLS = {
     input: { mode: z.enum(ops.MODES).optional(), paused: z.boolean().optional() },
     run: async (env, a) => ops.setOps(env, a),
   },
+  ...SHORTS_MCP_TOOLS,
 };
 
 export const toolNames = Object.keys(TOOLS);
@@ -242,6 +244,12 @@ const LABEL = {
   nts_set_mode: 'Operating mode changed',
   nts_run_agent: 'Agent deliverable written',
   nts_create_task: 'Task created',
+  generate_short_idea: 'Short idea generated',
+  generate_short_script: 'Short script written',
+  generate_storyboard: 'Storyboard created',
+  generate_production_package: 'Production package created',
+  save_content: 'Short content saved',
+  publish_short: 'Short published/scheduled',
 };
 
 /** Validate + run a tool; records a task and an activity line. */

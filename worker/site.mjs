@@ -10,6 +10,7 @@ import * as ytOAuth from './youtube.mjs';
 import * as liOAuth from './linkedin.mjs';
 import * as igOAuth from './instagram.mjs';
 import * as xOAuth from './twitter.mjs';
+import * as ytShorts from './yt-shorts.mjs';
 import * as disha from './disha.mjs';
 import { withSettings } from './store.mjs';
 
@@ -132,14 +133,16 @@ export default {
         liOAuth.scheduled(env),
         xOAuth.scheduled(env),
         socialHourly(env),
+        ytShorts.scheduled(env),
         env.DB ? import('./quiz-campaign.mjs').then(m => m.syncPublishStatus(env.DB, env)).catch(e => console.log('[quiz] hourly sync:', e.message)) : Promise.resolve()
-      ])); // hourly: due LinkedIn + X posts + new comments + quiz sync
+      ])); // hourly: due LinkedIn + X posts + new comments + quiz sync + scheduled shorts
     }
     ctx.waitUntil(Promise.all([
       analytics.scheduled(env),
       work.scheduled(env),
       liOAuth.scheduled(env),
       xOAuth.scheduled(env),
+      ytShorts.scheduled(env),
       igOAuth.refresh(env).catch((e) => console.log('[instagram] refresh failed:', e.message))
     ]));
   },

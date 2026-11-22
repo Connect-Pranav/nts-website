@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowSquareOut, InstagramLogo, XLogo, WarningCircle, MagnifyingGlass, ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop } from '@phosphor-icons/react';
+import { ArrowSquareOut, InstagramLogo, XLogo, WarningCircle, MagnifyingGlass, ArrowRight, Brain, ChartBar, ChartLineUp, CheckCircle, Code, FlowArrow, Heartbeat, Kanban, Lightning, LinkedinLogo, Microphone, Paperclip, Plus, Pulse, Rocket, ShieldCheck, Sparkle, UsersThree, YoutubeLogo, ChatCircleText, PencilSimple, ClockCounterClockwise, Stop, VideoCamera } from '@phosphor-icons/react';
 import type { Api, Go, Overview as OV, Ops, Page } from './shared';
 import { Card, Pill, ago, toneOf } from './shared';
 
@@ -258,6 +258,49 @@ export function OverviewPage({ api, go, owner }: { api: Api; go: Go; owner: stri
           </ul>
         </Card>
 
+        <Card
+          title="YT Shorts Generator"
+          icon={<VideoCamera size={20} color="var(--nc-bright)" />}
+          action={
+            <button type="button" className="nc-link" onClick={() => go('shorts')}>
+              Open Studio <ArrowRight size={14} />
+            </button>
+          }
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', padding: '6px 0' }}>
+            <div>
+              <p style={{ margin: '0 0 6px 0', fontSize: '13px', color: 'var(--nc-text)' }}>
+                AI-powered daily YouTube Shorts research, scripting, production, and publishing workflow.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <Pill tone="live">MCP: nts-yt-shorts-generator</Pill>
+                <span style={{ fontSize: '12px', color: 'var(--nc-text-2)' }}>Channel: @NikhilsTechStudio · 9:16 Vertical Phone Studio</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-shorts-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                background: 'linear-gradient(135deg, var(--nc-primary), var(--nc-bright))',
+                color: '#03191d',
+                fontWeight: 700,
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+              onClick={() => go('shorts')}
+            >
+              <VideoCamera size={16} weight="fill" />
+              Launch Studio
+            </button>
+          </div>
+        </Card>
+
         <div className="ov-bottom">
           <Card
             title="Current workflows"
@@ -384,6 +427,9 @@ export function OverviewPage({ api, go, owner }: { api: Api; go: Go; owner: stri
             </button>
             <button type="button" onClick={() => go('linkedin')}>
               <PencilSimple size={22} /> Create content
+            </button>
+            <button type="button" onClick={() => go('shorts')}>
+              <VideoCamera size={22} /> YT Shorts
             </button>
             <button type="button" onClick={() => go('leads')}>
               <UsersThree size={22} /> Find leads
